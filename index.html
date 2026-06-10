@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>macOS Web</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- 开机画面 -->
+  <div id="boot">
+    <svg class="boot-logo" viewBox="0 0 24 24" fill="currentColor"><path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/></svg>
+    <div class="boot-progress"><div class="boot-bar"></div></div>
+  </div>
+
+  <!-- 桌面 -->
+  <div id="desktop">
+    <div id="wallpaper"></div>
+    <div id="desktop-icons"></div>
+    <div id="windows-layer"></div>
+  </div>
+
+  <!-- 顶部菜单栏 -->
+  <header id="menubar">
+    <div class="mb-left">
+      <div class="mb-item mb-apple" id="mb-apple">
+        <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/></svg>
+      </div>
+      <div class="mb-item mb-appname" id="mb-appname">访达</div>
+      <div id="mb-menus"></div>
+    </div>
+    <div class="mb-right">
+      <div class="mb-item" id="mb-battery" title="电池">
+        <span id="battery-pct">100%</span>
+        <svg viewBox="0 0 28 14" width="24" height="13"><rect x="1" y="1" width="22" height="12" rx="3.5" fill="none" stroke="currentColor" stroke-opacity=".5" stroke-width="1.5"/><rect id="battery-fill" x="3" y="3" width="18" height="8" rx="2" fill="currentColor"/><path d="M25 4.5v5c1.3-.3 2-1.2 2-2.5s-.7-2.2-2-2.5z" fill="currentColor" fill-opacity=".5"/></svg>
+      </div>
+      <div class="mb-item" id="mb-wifi" title="Wi-Fi">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="16" height="16"><path d="M2.5 9.5a14 14 0 0 1 19 0"/><path d="M6 13a9.2 9.2 0 0 1 12 0"/><path d="M9.5 16.4a4.8 4.8 0 0 1 5 0"/><circle cx="12" cy="19.4" r="1.4" fill="currentColor" stroke="none"/></svg>
+      </div>
+      <div class="mb-item" id="mb-search" title="聚焦搜索">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" width="15" height="15"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 21 21"/></svg>
+      </div>
+      <div class="mb-item" id="mb-cc" title="控制中心">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="15" height="15"><rect x="2" y="4" width="20" height="7" rx="3.5"/><circle cx="6" cy="7.5" r="2.4" fill="currentColor" stroke="none"/><rect x="2" y="13" width="20" height="7" rx="3.5"/><circle cx="18" cy="16.5" r="2.4" fill="currentColor" stroke="none"/></svg>
+      </div>
+      <div class="mb-item" id="mb-clock">--</div>
+    </div>
+  </header>
+
+  <!-- Dock -->
+  <div id="dock-wrap">
+    <div id="dock"></div>
+  </div>
+
+  <!-- 聚焦搜索 -->
+  <div id="spotlight" class="overlay hidden">
+    <div class="spotlight-box">
+      <div class="spotlight-row">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" width="20" height="20"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 21 21"/></svg>
+        <input id="spotlight-input" type="text" placeholder="聚焦搜索" autocomplete="off">
+      </div>
+      <div id="spotlight-results"></div>
+    </div>
+  </div>
+
+  <!-- 启动台 -->
+  <div id="launchpad" class="overlay hidden">
+    <div class="lp-search"><input id="lp-input" type="text" placeholder="搜索" autocomplete="off"></div>
+    <div id="lp-grid"></div>
+  </div>
+
+  <!-- 控制中心 -->
+  <div id="control-center" class="hidden">
+    <div class="cc-grid">
+      <div class="cc-card cc-conn">
+        <div class="cc-row" data-toggle="wifi">
+          <span class="cc-ic on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="15" height="15"><path d="M2.5 9.5a14 14 0 0 1 19 0"/><path d="M6 13a9.2 9.2 0 0 1 12 0"/><path d="M9.5 16.4a4.8 4.8 0 0 1 5 0"/><circle cx="12" cy="19.4" r="1.4" fill="currentColor" stroke="none"/></svg></span>
+          <div><b>Wi-Fi</b><small>ZeboHome-5G</small></div>
+        </div>
+        <div class="cc-row" data-toggle="bt">
+          <span class="cc-ic on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M7 7l10 10-5 5V2l5 5L7 17"/></svg></span>
+          <div><b>蓝牙</b><small>打开</small></div>
+        </div>
+        <div class="cc-row" data-toggle="air">
+          <span class="cc-ic on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="15" height="15"><circle cx="12" cy="11" r="3"/><path d="M5 18a9 9 0 0 1 0-13M19 18a9 9 0 0 0 0-13" opacity=".6"/><path d="M8.5 21h7l-3.5-5z" fill="currentColor" stroke="none"/></svg></span>
+          <div><b>隔空投送</b><small>仅限联系人</small></div>
+        </div>
+      </div>
+      <div class="cc-side">
+        <div class="cc-card cc-mini" id="cc-dark"><span class="cc-ic">🌙</span><b>深色模式</b></div>
+        <div class="cc-card cc-mini" id="cc-focus"><span class="cc-ic">🌗</span><b>专注模式</b></div>
+      </div>
+      <div class="cc-card cc-slider">
+        <small>显示器</small>
+        <div class="cc-range"><span>☀️</span><input type="range" id="cc-bright" min="30" max="100" value="100"></div>
+      </div>
+      <div class="cc-card cc-slider">
+        <small>声音</small>
+        <div class="cc-range"><span>🔊</span><input type="range" id="cc-vol" min="0" max="100" value="70"></div>
+      </div>
+      <div class="cc-card cc-music-card" id="cc-music">
+        <span class="cc-disc">💿</span>
+        <div><b>未在播放</b><small>打开"音乐"</small></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 右键菜单 / 下拉菜单挂载点 -->
+  <div id="context-menu" class="dropdown hidden"></div>
+
+  <!-- 通知 -->
+  <div id="notifications"></div>
+
+  <!-- 亮度遮罩 / 睡眠 / 关机 -->
+  <div id="brightness-overlay"></div>
+  <div id="sleep-overlay" class="hidden"></div>
+  <div id="power-overlay" class="hidden">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" width="46" height="46"><path d="M12 3v8"/><path d="M6.2 6.2a8 8 0 1 0 11.6 0"/></svg>
+    <p>点按任意位置以启动</p>
+  </div>
+
+  <script src="js/wm.js"></script>
+  <script src="js/apps.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/system.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
