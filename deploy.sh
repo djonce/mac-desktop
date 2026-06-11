@@ -29,6 +29,7 @@ command -v rsync >/dev/null || die "本机未安装 rsync"
 info "同步代码到 ${SSH_HOST}:${REMOTE_DIR}"
 rsync -az --delete --itemize-changes \
   --exclude='.git/' \
+  --exclude='.claude/' \
   --exclude='.DS_Store' \
   --exclude='AGENTS.md' \
   --exclude='deploy.sh' \
