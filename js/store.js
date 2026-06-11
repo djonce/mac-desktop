@@ -192,6 +192,462 @@ ov.addEventListener('click',init);
 init();
 <\/script></body></html>`;
 
+  const EBOOK_SRC = `<!doctype html><html lang="zh"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-user-select:none;user-select:none}
+:root{
+  --bg:#f6f3ec;--fg:#2f2b25;--fg2:#9a948a;--ui:#fbf9f4;--line:rgba(0,0,0,.07);
+  --accent:#b5854b;--fs:19px;--lh:1.85;--bookfont:'Songti SC','STSong',Georgia,serif;
+}
+html,body{height:100%;overflow:hidden;background:var(--bg);
+  font-family:-apple-system,'PingFang SC','Helvetica Neue',sans-serif;color:var(--fg);
+  transition:background .45s ease,color .45s ease;-webkit-font-smoothing:antialiased}
+[data-theme=sepia]{--bg:#f1e6cf;--fg:#5a4d38;--fg2:#a79874;--ui:#f6eedb;--line:rgba(90,60,20,.1);--accent:#9c7434}
+[data-theme=night]{--bg:#16161a;--fg:#c6c2b9;--fg2:#6c6960;--ui:#1d1d22;--line:rgba(255,255,255,.08);--accent:#c79a5e}
+button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:none}
+
+/* ===== 视图容器 ===== */
+#app{position:relative;height:100%;overflow:hidden}
+.view{position:absolute;inset:0;transition:opacity .4s ease,transform .45s cubic-bezier(.32,.72,.2,1)}
+#shelf{overflow-y:auto;padding:26px 28px 40px}
+#shelf.out{opacity:0;transform:scale(1.04);pointer-events:none}
+#reader{opacity:0;transform:translateY(14px);pointer-events:none;display:flex;flex-direction:column}
+#reader.in{opacity:1;transform:none;pointer-events:auto}
+
+/* ===== 书架 ===== */
+.shelf-head{margin:6px 4px 22px}
+.shelf-head h1{font-size:25px;font-weight:600;letter-spacing:.5px}
+.shelf-head p{font-size:13px;color:var(--fg2);margin-top:3px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:30px 22px}
+.book{cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:11px;
+  transition:transform .28s cubic-bezier(.3,.8,.3,1)}
+.book:hover{transform:translateY(-7px)}
+.cover{position:relative;width:128px;height:178px;border-radius:5px 9px 9px 5px;overflow:hidden;
+  box-shadow:0 1px 1px rgba(0,0,0,.2),0 16px 30px -12px rgba(0,0,0,.5);
+  display:flex;color:#fff}
+.cover::before{content:'';position:absolute;left:0;top:0;bottom:0;width:11px;
+  background:linear-gradient(90deg,rgba(0,0,0,.28),rgba(0,0,0,0) 60%);z-index:2}
+.cover::after{content:'';position:absolute;left:11px;top:0;bottom:0;width:2px;background:rgba(255,255,255,.18);z-index:2}
+.cover .title{writing-mode:vertical-rl;margin:20px 0 0 auto;padding-right:18px;
+  font-family:var(--bookfont);font-size:21px;font-weight:600;letter-spacing:4px;
+  text-shadow:0 1px 5px rgba(0,0,0,.35)}
+.cover .author{position:absolute;left:20px;bottom:15px;font-size:11px;opacity:.82;letter-spacing:1px}
+.book .meta{text-align:center}
+.book .bn{font-size:13.5px;font-weight:500;color:var(--fg)}
+.book .ba{font-size:11.5px;color:var(--fg2);margin-top:2px}
+
+/* ===== 阅读视图 ===== */
+.bar{position:absolute;left:0;right:0;z-index:6;display:flex;align-items:center;
+  background:var(--ui);transition:opacity .3s,transform .3s;border-color:var(--line)}
+.immersive .bar{opacity:0;pointer-events:none}
+.topbar{top:0;height:50px;padding:0 14px;gap:6px;border-bottom:1px solid var(--line)}
+.immersive .topbar{transform:translateY(-100%)}
+.botbar{bottom:0;height:46px;padding:0 20px;gap:14px;border-top:1px solid var(--line);font-size:12px;color:var(--fg2)}
+.immersive .botbar{transform:translateY(100%)}
+.tbtn{width:38px;height:34px;border-radius:8px;font-size:17px;display:flex;align-items:center;justify-content:center;
+  transition:background .15s}
+.tbtn:hover{background:var(--line)}
+.bar .bt-title{flex:1;text-align:center;font-size:14px;font-weight:500;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:var(--bookfont)}
+.progress-wrap{flex:1;height:3px;border-radius:2px;background:var(--line);overflow:hidden}
+.progress-wrap .fill{height:100%;width:0;background:var(--accent);transition:width .35s ease}
+.botbar .pct{min-width:34px;text-align:right;font-variant-numeric:tabular-nums}
+.botbar .chap{min-width:90px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:var(--bookfont)}
+
+.stage{position:absolute;inset:0;overflow:hidden;touch-action:pan-y}
+.flow{height:100%;margin:0 52px;padding:62px 0 54px;
+  column-fill:auto;column-gap:104px;
+  font-family:var(--bookfont);font-size:var(--fs);line-height:var(--lh);color:var(--fg);
+  transition:transform .42s cubic-bezier(.33,.72,.32,1)}
+.flow.drag{transition:none}
+.flow section{break-inside:avoid-column}
+.flow h2{font-size:calc(var(--fs) + 5px);font-weight:600;text-align:center;
+  margin:6px 0 26px;letter-spacing:2px;break-after:avoid-column}
+.flow h2.first{margin-top:30px}
+.flow p{text-indent:2em;margin-bottom:.55em;text-align:justify;
+  -webkit-hyphens:auto;hyphens:auto}
+.flow p.nf{text-indent:0}
+.flow .poem{text-indent:0;text-align:center;line-height:2.1;margin:.2em 0 1.1em}
+.flow .note{text-indent:0;font-size:calc(var(--fs) - 4px);color:var(--fg2);
+  border-left:2px solid var(--line);padding-left:12px;margin:.3em 0 1.3em}
+.flow .dash{text-indent:0;text-align:center;color:var(--fg2);margin:1em 0}
+
+/* 翻页热区 */
+.tap{position:absolute;top:50px;bottom:46px;width:32%;z-index:4}
+.tap.l{left:0;cursor:w-resize}
+.tap.r{right:0;cursor:e-resize}
+
+/* ===== 抽屉:目录 / 设置 ===== */
+.scrim{position:absolute;inset:0;z-index:8;background:rgba(0,0,0,.32);opacity:0;
+  pointer-events:none;transition:opacity .3s}
+.scrim.show{opacity:1;pointer-events:auto}
+.toc{position:absolute;top:0;left:0;bottom:0;width:288px;max-width:80%;z-index:9;
+  background:var(--ui);box-shadow:8px 0 30px rgba(0,0,0,.25);
+  transform:translateX(-100%);transition:transform .34s cubic-bezier(.32,.72,.2,1);
+  display:flex;flex-direction:column}
+.toc.open{transform:none}
+.toc h3{font-size:13px;color:var(--fg2);padding:18px 20px 12px;letter-spacing:1px}
+.toc-list{overflow-y:auto;padding:0 10px 16px}
+.toc-item{padding:11px 14px;border-radius:8px;font-size:14px;font-family:var(--bookfont);
+  cursor:pointer;transition:background .15s;display:flex;justify-content:space-between;gap:10px}
+.toc-item:hover{background:var(--line)}
+.toc-item.cur{color:var(--accent);font-weight:600}
+.toc-item .pg{font-size:11px;color:var(--fg2);font-family:-apple-system,sans-serif}
+
+.settings{position:absolute;left:0;right:0;bottom:0;z-index:9;background:var(--ui);
+  border-top:1px solid var(--line);box-shadow:0 -10px 30px rgba(0,0,0,.18);
+  border-radius:16px 16px 0 0;padding:20px 22px 26px;
+  transform:translateY(115%);transition:transform .36s cubic-bezier(.32,.72,.2,1)}
+.settings.open{transform:none}
+.set-row{display:flex;align-items:center;gap:14px;margin-bottom:18px}
+.set-row:last-child{margin-bottom:0}
+.set-row .lab{width:46px;font-size:12px;color:var(--fg2);flex-shrink:0}
+.themes{display:flex;gap:12px}
+.sw{width:40px;height:40px;border-radius:50%;border:2px solid var(--line);position:relative;transition:transform .2s}
+.sw:hover{transform:scale(1.08)}
+.sw.on{border-color:var(--accent);box-shadow:0 0 0 2px var(--ui),0 0 0 4px var(--accent)}
+.sw.paper{background:#f6f3ec}.sw.sepia{background:#f1e6cf}.sw.night{background:#16161a}
+.seg{display:flex;background:var(--line);border-radius:9px;padding:3px;gap:3px;flex:1}
+.seg button{flex:1;padding:7px 0;border-radius:7px;font-size:13px;transition:background .18s,color .18s}
+.seg button.on{background:var(--ui);color:var(--fg);box-shadow:0 1px 3px rgba(0,0,0,.12);font-weight:500}
+.stepper{display:flex;align-items:center;gap:0;flex:1;background:var(--line);border-radius:9px;overflow:hidden}
+.stepper button{flex:1;padding:8px 0;font-size:17px;transition:background .15s}
+.stepper button:hover{background:rgba(0,0,0,.06)}
+.stepper .val{flex:1.4;text-align:center;font-size:13px;color:var(--fg);font-variant-numeric:tabular-nums}
+</style></head>
+<body>
+<div id="app">
+  <!-- 书架 -->
+  <div id="shelf" class="view">
+    <div class="shelf-head"><h1>书阁</h1><p>轻点封面,开始阅读</p></div>
+    <div class="grid" id="grid"></div>
+  </div>
+  <!-- 阅读 -->
+  <div id="reader" class="view">
+    <div class="bar topbar">
+      <button class="tbtn" id="back" title="书架">‹</button>
+      <button class="tbtn" id="tocBtn" title="目录">☰</button>
+      <div class="bt-title" id="rTitle"></div>
+      <button class="tbtn" id="setBtn" title="显示设置" style="font-size:15px">Aa</button>
+    </div>
+    <div class="stage" id="stage">
+      <div class="flow" id="flow"></div>
+    </div>
+    <div class="tap l" id="tapL"></div>
+    <div class="tap r" id="tapR"></div>
+    <div class="bar botbar">
+      <span class="chap" id="bChap"></span>
+      <div class="progress-wrap"><div class="fill" id="bFill"></div></div>
+      <span class="pct" id="bPct">0%</span>
+    </div>
+    <div class="scrim" id="scrim"></div>
+    <div class="toc" id="toc"><h3>目录</h3><div class="toc-list" id="tocList"></div></div>
+    <div class="settings" id="settings">
+      <div class="set-row"><span class="lab">主题</span>
+        <div class="themes">
+          <button class="sw paper on" data-theme="paper"></button>
+          <button class="sw sepia" data-theme="sepia"></button>
+          <button class="sw night" data-theme="night"></button>
+        </div>
+      </div>
+      <div class="set-row"><span class="lab">字体</span>
+        <div class="seg" id="fontSeg">
+          <button data-f="song" class="on">宋体</button>
+          <button data-f="hei">黑体</button>
+        </div>
+      </div>
+      <div class="set-row"><span class="lab">字号</span>
+        <div class="stepper"><button data-fs="-1">A−</button><span class="val" id="fsVal">19</span><button data-fs="1">A+</button></div>
+      </div>
+      <div class="set-row"><span class="lab">行距</span>
+        <div class="stepper"><button data-lh="-1">紧</button><span class="val" id="lhVal">1.85</span><button data-lh="1">松</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+/* ============ 书籍数据(公共领域文本 + 原创) ============ */
+var P=function(){var a=[].slice.call(arguments);return{p:a}};      /* 普通段 */
+function ch(t){var c={t:t,b:[]};for(var i=1;i<arguments.length;i++)c.b.push(arguments[i]);return c}
+function p(){return{k:'p',x:[].slice.call(arguments).join('')}}
+function poem(){return{k:'poem',x:[].slice.call(arguments)}}
+function note(s){return{k:'note',x:s}}
+function nf(s){return{k:'nf',x:s}}
+
+var BOOKS=[
+ {id:'daode',name:'道德经',author:'老子',cover:'linear-gradient(155deg,#33403c,#10201d)',tcol:'#e8c98a',
+  chapters:[
+   ch('第一章',
+     p('道可道,非常道;名可名,非常名。'),
+     p('无名天地之始,有名万物之母。故常无欲,以观其妙;常有欲,以观其徼。'),
+     p('此两者,同出而异名,同谓之玄。玄之又玄,众妙之门。')),
+   ch('第二章',
+     p('天下皆知美之为美,斯恶已;皆知善之为善,斯不善已。'),
+     p('故有无相生,难易相成,长短相形,高下相倾,音声相和,前后相随。'),
+     p('是以圣人处无为之事,行不言之教;万物作焉而不辞,生而不有,为而不恃,功成而弗居。夫唯弗居,是以不去。')),
+   ch('第八章',
+     p('上善若水。水善利万物而不争,处众人之所恶,故几于道。'),
+     p('居善地,心善渊,与善仁,言善信,正善治,事善能,动善时。夫唯不争,故无尤。')),
+   ch('第十一章',
+     p('三十辐,共一毂,当其无,有车之用。埏埴以为器,当其无,有器之用。凿户牖以为室,当其无,有室之用。'),
+     p('故有之以为利,无之以为用。')),
+   ch('第二十二章',
+     p('曲则全,枉则直,洼则盈,敝则新,少则得,多则惑。'),
+     p('是以圣人抱一为天下式。不自见,故明;不自是,故彰;不自伐,故有功;不自矜,故长。'),
+     p('夫唯不争,故天下莫能与之争。')),
+   ch('第三十三章',
+     p('知人者智,自知者明。胜人者有力,自胜者强。'),
+     p('知足者富,强行者有志。不失其所者久,死而不亡者寿。')),
+   ch('第六十四章',
+     p('其安易持,其未兆易谋;其脆易泮,其微易散。为之于未有,治之于未乱。'),
+     p('合抱之木,生于毫末;九层之台,起于累土;千里之行,始于足下。')),
+   ch('第八十一章',
+     p('信言不美,美言不信。善者不辩,辩者不善。知者不博,博者不知。'),
+     p('圣人不积,既以为人己愈有,既以与人己愈多。天之道,利而不害;圣人之道,为而不争。'))
+  ]},
+ {id:'tang',name:'唐诗选',author:'李白 等',cover:'linear-gradient(155deg,#7d2b2b,#3a1212)',tcol:'#f1d8a8',
+  chapters:[
+   ch('静夜思 · 李白',
+     poem('床前明月光,疑是地上霜。','举头望明月,低头思故乡。'),
+     note('二十字,写尽千年游子心。明白如话,而余味无穷。')),
+   ch('登鹳雀楼 · 王之涣',
+     poem('白日依山尽,黄河入海流。','欲穷千里目,更上一层楼。'),
+     note('后两句已成格言:登高方能望远。')),
+   ch('相思 · 王维',
+     poem('红豆生南国,春来发几枝。','愿君多采撷,此物最相思。'),
+     note('以红豆寄相思,温润含蓄,王维本色。')),
+   ch('春晓 · 孟浩然',
+     poem('春眠不觉晓,处处闻啼鸟。','夜来风雨声,花落知多少。'),
+     note('听觉写春,惜花之情藏于问句之中。')),
+   ch('鹿柴 · 王维',
+     poem('空山不见人,但闻人语响。','返景入深林,复照青苔上。'),
+     note('以声衬静,以光写幽,禅意盎然。')),
+   ch('江雪 · 柳宗元',
+     poem('千山鸟飞绝,万径人踪灭。','孤舟蓑笠翁,独钓寒江雪。'),
+     note('二十字一幅水墨,孤绝清冷,见其风骨。')),
+   ch('月下独酌 · 李白',
+     poem('花间一壶酒,独酌无相亲。','举杯邀明月,对影成三人。'),
+     note('独而不孤——邀月与影,豪情自遣。')),
+   ch('登高 · 杜甫',
+     poem('风急天高猿啸哀,渚清沙白鸟飞回。','无边落木萧萧下,不尽长江滚滚来。'),
+     note('被誉为「七律第一」。沉郁顿挫,气象万千。'))
+  ]},
+ {id:'shishuo',name:'世说新语',author:'刘义庆',cover:'linear-gradient(155deg,#3a6b62,#1b3a35)',tcol:'#e6efe0',
+  chapters:[
+   ch('咏雪',
+     p('谢太傅寒雪日内集,与儿女讲论文义。俄而雪骤,公欣然曰:「白雪纷纷何所似?」'),
+     p('兄子胡儿曰:「撒盐空中差可拟。」兄女曰:「未若柳絮因风起。」公大笑乐。'),
+     note('「柳絮因风起」遂成咏雪名喻,谢道韫由此称「咏絮之才」。')),
+   ch('陈太丘与友期',
+     p('陈太丘与友期行,期日中。过中不至,太丘舍去,去后乃至。元方时年七岁,门外戏。'),
+     p('客问元方:「尊君在不?」答曰:「待君久不至,已去。」友人便怒,元方曰:「君与家君期日中,日中不至,则是无信;对子骂父,则是无礼。」友人惭,下车引之。元方入门不顾。'),
+     note('七岁孩童,以理服人。诚信与礼,古今同重。')),
+   ch('雪夜访戴',
+     p('王子猷居山阴,夜大雪,眠觉,开室命酌酒,四望皎然。因起彷徨,咏左思《招隐诗》,忽忆戴安道。'),
+     p('时戴在剡,即便夜乘小船就之。经宿方至,造门不前而返。人问其故,王曰:「吾本乘兴而行,兴尽而返,何必见戴?」'),
+     note('乘兴而行,兴尽而返——魏晋风度的极致写照。')),
+   ch('管宁割席',
+     p('管宁、华歆共园中锄菜,见地有片金,管挥锄与瓦石不异,华捉而掷去之。'),
+     p('又尝同席读书,有乘轩冕过门者,宁读如故,歆废书出看。宁割席分坐,曰:「子非吾友也。」'),
+     note('道不同不相为谋。一割,见取舍之严。')),
+   ch('王子猷爱竹',
+     p('王子猷尝暂寄人空宅住,便令种竹。或问:「暂住何烦尔?」王啸咏良久,直指竹曰:「何可一日无此君?」'),
+     note('「不可一日无此君」,竹之高洁,士之自况。')),
+   ch('周处除三害',
+     p('周处年少时,凶强侠气,为乡里所患。又义兴水中有蛟,山中有白额虎,并皆暴犯百姓,义兴人谓为「三横」,而处尤剧。'),
+     p('或说处杀虎斩蛟,实冀三横唯余其一。处即刺杀虎,又入水击蛟,经三日三夜,乡里皆谓已死,更相庆。竟杀蛟而出,闻里人相庆,始知为人情所患,有自改意。终为忠臣孝子。'),
+     note('知错能改,善莫大焉。三害之中,人心最难除。'))
+  ]},
+ {id:'manual',name:'本机手册',author:'macOS Web',cover:'linear-gradient(155deg,#4f7cf5,#8b3fd4)',tcol:'#ffffff',
+  chapters:[
+   ch('欢迎',
+     p('欢迎使用 macOS Web——一个用纯 HTML、CSS 和原生 JavaScript 写成的网页操作系统。你现在正在它的「书阁」里读这本手册,而书阁本身,是从 App Store 里安装来的一个应用。'),
+     p('它没有后端,没有框架,所有窗口、动画与应用都在你的浏览器里运行。下面几页,带你认识它。')),
+   ch('窗口与程序坞',
+     p('每个应用都是一个可拖动、可缩放的窗口。左上角三颗灯:红色关闭,黄色最小化(会「吸」进程序坞),绿色缩放。双击标题栏也能最大化。'),
+     p('屏幕底部的程序坞会随鼠标靠近而放大;正在运行的应用下方有一个小圆点。')),
+   ch('聚焦与启动台',
+     p('按下 ⌘K 唤出聚焦搜索,输入应用名即可启动,甚至能直接当计算器用——试试输入 12*8。'),
+     p('点按程序坞上的火箭进入启动台,这里陈列着所有应用,支持搜索。')),
+   ch('App Store',
+     p('App Store 里可以一键安装小游戏与工具,安装后它们会出现在启动台、聚焦搜索和访达里。'),
+     p('你也可以发布自己的网页应用:贴一段 HTML 代码,或填一个网址,就能上架。这本「书阁」便是一个范例——它证明了一个完整的应用可以多精致。')),
+   ch('终端彩蛋',
+     p('打开「终端」,输入 neofetch,会看到一张用字符拼成的系统信息卡片。还可以试试 ls、cd、cat,以及——如果你好奇的话——sudo。'),
+     note('提示:这台 Mac 的 sudo 没那么好说话。')),
+   ch('关于',
+     p('macOS Web 由 Zebo 与 Claude 一同打造,在线运行于 desktop.19ba.cn。'),
+     p('愿你在这方寸屏幕之间,也能找到一点把玩系统的乐趣。翻到这里,手册就读完了——合上书,去探索吧。'),
+     nf('— 完 —'))
+  ]}
+];
+
+/* ============ 状态 ============ */
+var app=document.getElementById('app'),shelf=document.getElementById('shelf'),
+    reader=document.getElementById('reader'),stage=document.getElementById('stage'),
+    flow=document.getElementById('flow');
+var PAD=52,GAP=104;
+var curBook=null,page=0,pages=1,chapPages=[],chapEls=[];
+
+/* ============ 书架 ============ */
+(function buildShelf(){
+  var g=document.getElementById('grid'),h='';
+  for(var i=0;i<BOOKS.length;i++){var b=BOOKS[i];
+    h+='<div class="book" data-i="'+i+'">'+
+       '<div class="cover" style="background:'+b.cover+';color:'+b.tcol+'">'+
+       '<div class="title">'+b.name+'</div><div class="author">'+b.author+'</div></div>'+
+       '<div class="meta"><div class="bn">'+b.name+'</div><div class="ba">'+b.author+'</div></div></div>';
+  }
+  g.innerHTML=h;
+  g.addEventListener('click',function(e){var el=e.target.closest('.book');if(el)openBook(+el.dataset.i)});
+})();
+
+/* ============ 打开 / 渲染一本书 ============ */
+function openBook(i){
+  curBook=BOOKS[i];page=0;
+  document.getElementById('rTitle').textContent=curBook.name;
+  var html='',j,k;
+  for(j=0;j<curBook.chapters.length;j++){
+    var c=curBook.chapters[j];
+    html+='<section data-ch="'+j+'"><h2'+(j===0?' class="first"':'')+'>'+c.t+'</h2>';
+    for(k=0;k<c.b.length;k++){var blk=c.b[k];
+      if(blk.k==='p')html+='<p>'+blk.x+'</p>';
+      else if(blk.k==='nf')html+='<p class="nf dash">'+blk.x+'</p>';
+      else if(blk.k==='note')html+='<p class="note">'+blk.x+'</p>';
+      else if(blk.k==='poem')html+='<p class="poem">'+blk.x.join('<br>')+'</p>';
+    }
+    html+='</section>';
+  }
+  flow.innerHTML=html;
+  shelf.classList.add('out');
+  reader.classList.add('in');
+  requestAnimationFrame(function(){requestAnimationFrame(layout)});
+  if(document.fonts&&document.fonts.ready)document.fonts.ready.then(function(){if(reader.classList.contains('in'))reflow()});
+}
+function backToShelf(){
+  reader.classList.remove('in');shelf.classList.remove('out');
+  closeToc();closeSettings();
+}
+
+/* ============ 分页(多栏测量) ============ */
+function stageW(){return stage.clientWidth}
+function layout(){
+  var w=stageW();if(!w)return;
+  flow.classList.add('drag');                 /* 关闭动画测量 */
+  flow.style.columnWidth=(w-PAD*2)+'px';
+  flow.style.columnGap=GAP+'px';
+  flow.style.transform='translateX(0)';
+  pages=Math.max(1,Math.round((flow.scrollWidth+GAP)/w));
+  /* 记录每章页码 */
+  chapEls=flow.querySelectorAll('section');
+  chapPages=[];var f0=flow.getBoundingClientRect().left;
+  for(var i=0;i<chapEls.length;i++){
+    var x=chapEls[i].getBoundingClientRect().left-f0;
+    chapPages.push(Math.max(0,Math.round(x/w)));
+  }
+  if(page>pages-1)page=pages-1;
+  buildToc();
+  requestAnimationFrame(function(){flow.classList.remove('drag');render()});
+}
+function render(){
+  flow.style.transform='translateX('+(-page*stageW())+'px)';
+  var pct=pages>1?Math.round(page/(pages-1)*100):100;
+  document.getElementById('bFill').style.width=pct+'%';
+  document.getElementById('bPct').textContent=pct+'%';
+  /* 当前章名 */
+  var ci=0;for(var i=0;i<chapPages.length;i++)if(chapPages[i]<=page)ci=i;
+  document.getElementById('bChap').textContent=curBook?curBook.chapters[ci].t:'';
+  var items=document.querySelectorAll('.toc-item');
+  for(var j=0;j<items.length;j++)items[j].classList.toggle('cur',+items[j].dataset.ch===ci);
+}
+function go(d){var n=page+d;if(n<0||n>pages-1)return bounce(d);page=n;render()}
+function bounce(d){              /* 边界回弹 */
+  flow.style.transform='translateX('+(-page*stageW()-d*26)+'px)';
+  setTimeout(render,160);
+}
+
+/* ============ 目录 ============ */
+function buildToc(){
+  var h='';for(var i=0;i<curBook.chapters.length;i++)
+    h+='<div class="toc-item" data-ch="'+i+'"><span>'+curBook.chapters[i].t+'</span><span class="pg">'+(chapPages[i]+1)+'</span></div>';
+  document.getElementById('tocList').innerHTML=h;
+}
+function openToc(){document.getElementById('toc').classList.add('open');document.getElementById('scrim').classList.add('show')}
+function closeToc(){document.getElementById('toc').classList.remove('open');if(!document.getElementById('settings').classList.contains('open'))document.getElementById('scrim').classList.remove('show')}
+document.getElementById('tocList').addEventListener('click',function(e){
+  var it=e.target.closest('.toc-item');if(!it)return;
+  page=chapPages[+it.dataset.ch];render();closeToc();
+});
+
+/* ============ 设置 ============ */
+function openSettings(){document.getElementById('settings').classList.add('open');document.getElementById('scrim').classList.add('show')}
+function closeSettings(){document.getElementById('settings').classList.remove('open');if(!document.getElementById('toc').classList.contains('open'))document.getElementById('scrim').classList.remove('show')}
+var rootStyle=document.documentElement.style,fs=19,lh=1.85;
+document.querySelectorAll('.sw').forEach(function(b){b.addEventListener('click',function(){
+  document.querySelectorAll('.sw').forEach(function(x){x.classList.remove('on')});b.classList.add('on');
+  document.documentElement.setAttribute('data-theme',b.dataset.theme==='paper'?'':b.dataset.theme);
+})});
+document.getElementById('fontSeg').addEventListener('click',function(e){
+  var b=e.target.closest('button');if(!b)return;
+  document.querySelectorAll('#fontSeg button').forEach(function(x){x.classList.remove('on')});b.classList.add('on');
+  rootStyle.setProperty('--bookfont',b.dataset.f==='hei'?"-apple-system,'PingFang SC',sans-serif":"'Songti SC','STSong',Georgia,serif");
+  reflow();
+});
+document.querySelectorAll('[data-fs]').forEach(function(b){b.addEventListener('click',function(){
+  fs=Math.min(26,Math.max(15,fs+ +b.dataset.fs));rootStyle.setProperty('--fs',fs+'px');
+  document.getElementById('fsVal').textContent=fs;reflow();
+})});
+document.querySelectorAll('[data-lh]').forEach(function(b){b.addEventListener('click',function(){
+  lh=Math.min(2.4,Math.max(1.5,+(lh+ +b.dataset.lh*0.15).toFixed(2)));rootStyle.setProperty('--lh',lh);
+  document.getElementById('lhVal').textContent=lh.toFixed(2);reflow();
+})});
+function reflow(){var r=pages>1?page/(pages-1):0;layout();requestAnimationFrame(function(){page=Math.round(r*(pages-1));render()})}
+
+/* ============ 交互:点击热区 / 拖拽 / 键盘 ============ */
+document.getElementById('back').addEventListener('click',backToShelf);
+document.getElementById('tocBtn').addEventListener('click',openToc);
+document.getElementById('setBtn').addEventListener('click',openSettings);
+document.getElementById('scrim').addEventListener('click',function(){closeToc();closeSettings()});
+document.getElementById('tapL').addEventListener('click',function(){go(-1)});
+document.getElementById('tapR').addEventListener('click',function(){go(1)});
+
+/* 拖拽手势(跟手滑动) */
+var dragging=false,startX=0,baseX=0,moved=0;
+stage.addEventListener('pointerdown',function(e){
+  if(e.target.closest('.tap'))return;       /* 热区交给 click */
+  dragging=true;moved=0;startX=e.clientX;baseX=-page*stageW();
+  flow.classList.add('drag');stage.setPointerCapture(e.pointerId);
+});
+stage.addEventListener('pointermove',function(e){
+  if(!dragging)return;var dx=e.clientX-startX;moved=dx;
+  /* 边界阻尼 */
+  if((page===0&&dx>0)||(page===pages-1&&dx<0))dx*=0.34;
+  flow.style.transform='translateX('+(baseX+dx)+'px)';
+});
+stage.addEventListener('pointerup',function(e){
+  if(!dragging)return;dragging=false;flow.classList.remove('drag');
+  var w=stageW();
+  if(Math.abs(moved)<6){                     /* 当作点击:中间区切换沉浸 */
+    reader.classList.toggle('immersive');render();return;
+  }
+  if(moved<=-w*0.16)go(1);
+  else if(moved>=w*0.16)go(-1);
+  else render();                              /* 回弹 */
+});
+addEventListener('keydown',function(e){
+  if(!reader.classList.contains('in'))return;
+  if(e.key==='ArrowRight'||e.key==='ArrowDown'||e.key===' '){go(1);e.preventDefault()}
+  else if(e.key==='ArrowLeft'||e.key==='ArrowUp'){go(-1);e.preventDefault()}
+  else if(e.key==='Escape'){closeToc();closeSettings();if(reader.classList.contains('in'))backToShelf()}
+});
+
+/* 窗口尺寸变化 → 保持进度重排 */
+var ro=new ResizeObserver(function(){if(reader.classList.contains('in'))reflow()});
+ro.observe(stage);
+<\/script></body></html>
+`;
+
   const builtin = [
     { id: 'snake', name: '贪吃蛇', icon: '🐍', bg: 'linear-gradient(180deg,#3dd86e,#0f9d44)', cat: '游戏',
       desc: '经典街机,方向键走起', long: '最经典的贪吃蛇:方向键或 WASD 控制,吃到红色食物加 10 分,撞到自己游戏结束。穿墙是特性,不是 bug。',
@@ -215,6 +671,9 @@ init();
       desc: 'OpenStreetMap 在线地图', long: '基于 OpenStreetMap 的在线地图(URL 应用示例)。需要联网,数据来自 openstreetmap.org。',
       author: 'OSM 社区', ver: '—', size: '在线', rating: '4.7', dl: '9.6万', type: 'url',
       source: 'https://www.openstreetmap.org/export/embed.html?bbox=116.25,39.85,116.55,40.02&layer=mapnik', w: 720, h: 520 },
+    { id: 'reader', name: '书阁', icon: '📖', bg: 'linear-gradient(160deg,#caa86a,#8a5a2b)', cat: '阅读',
+      desc: '丝滑翻页的电子书阅读器', long: '一款界面考究的电子书阅读器:用 CSS 多栏实现真实分页,配合手势跟手翻页,顺滑如纸。内置《道德经》《唐诗选》《世说新语》及一本原创《本机手册》(均为公共领域或原创文本)。支持目录跳转、纸 / 米黄 / 夜间三种主题,以及字号、行距、字体调节。',
+      author: 'Zebo', ver: '1.0.0', size: '0.4 MB', rating: '4.9', dl: '7.7万', type: 'html', source: EBOOK_SRC, w: 760, h: 560 },
   ];
 
   /* ---------- 状态 ---------- */
@@ -300,8 +759,8 @@ init();
   }
 
   /* ---------- 商店界面 ---------- */
-  const CATS = ['游戏', '工具', '效率'];
-  const CAT_IC = { '游戏': '🎮', '工具': '🔧', '效率': '⏱' };
+  const CATS = ['游戏', '阅读', '工具', '效率'];
+  const CAT_IC = { '游戏': '🎮', '阅读': '📖', '工具': '🔧', '效率': '⏱' };
 
   function renderStore(root, win) {
     let view = { type: 'home' };
