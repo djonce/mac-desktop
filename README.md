@@ -10,6 +10,18 @@ open index.html        # macOS 下直接打开
 python3 -m http.server 8000
 ```
 
+## 部署
+
+线上地址:**https://desktop.19ba.cn**(阿里云 ECS + Caddy,Let's Encrypt 自动 HTTPS)。
+
+改完代码后一条命令发布(rsync 同步到服务器,Caddy 即时生效,并自动做健康检查):
+
+```bash
+./deploy.sh
+```
+
+服务器别名、远程目录、域名等配置在 `deploy.sh` 顶部。
+
 ## 功能
 
 **系统**
