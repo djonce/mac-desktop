@@ -307,7 +307,8 @@ body.dark .window:not(.focused) .tl { background: #5a5a5e; }
   box-shadow: 0 18px 50px rgba(0, 0, 0, .35);
   animation: dd-in .14s ease;
 }
-.cc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.cc-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
+.cc-grid > * { min-width: 0; }
 .cc-card {
   background: var(--hover); border: 1px solid var(--line);
   border-radius: 13px; padding: 10px;
@@ -327,7 +328,7 @@ body.dark .window:not(.focused) .tl { background: #5a5a5e; }
 .cc-mini.on .cc-ic { background: var(--accent); color: #fff; }
 .cc-slider small { font-size: 12px; font-weight: 600; opacity: .8; }
 .cc-range { display: flex; align-items: center; gap: 8px; margin-top: 7px; }
-.cc-range input { flex: 1; accent-color: #fff; }
+.cc-range input { flex: 1; min-width: 0; accent-color: #fff; }
 .cc-music-card { grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; cursor: default; }
 .cc-disc { font-size: 26px; }
 .cc-music-card b { display: block; font-size: 12.5px; }
