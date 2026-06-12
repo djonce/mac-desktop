@@ -59,11 +59,20 @@ python3 -m http.server 8000
 ## 结构
 
 ```
-index.html      页面骨架
-style.css       全部样式(含深色模式)
-js/wm.js        窗口管理器
-js/apps.js      应用注册表 + 各应用实现 + 虚拟文件系统
-js/store.js     App Store(商店目录 / 安装 / 发布 / 沙箱运行器)
-js/system.js    菜单栏 / Dock / 聚焦 / 启动台 / 控制中心 / 通知
-js/main.js      入口
+index.html        页面骨架
+style.css         全部样式(含深色模式)
+js/wm.js          窗口管理器
+js/apps.js        应用注册表 + 系统应用实现 + 虚拟文件系统
+js/store.js       App Store(商店 UI / 安装 / 发布 / 沙箱运行器)
+js/system.js      菜单栏 / Dock / 聚焦 / 启动台 / 控制中心 / 通知
+js/main.js        入口
+apps/catalog.js   商店目录清单(应用元数据)
+apps/<id>/        商店应用本体,每个一个独立目录(沙箱 iframe 按需加载)
 ```
+
+### 给商店新增应用
+
+1. 在 `apps/你的应用/` 下写一个自包含的 `index.html`(可直接双击调试)
+2. 在 `apps/catalog.js` 加一条记录(`type: 'page'`, `source` 指向该文件)
+
+应用源码按需加载:用户不点开就不下载,与系统运行在隔离沙箱中。

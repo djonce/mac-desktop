@@ -1,0 +1,29 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+html,body{height:100%;margin:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:#12141c;color:#eee;font-family:-apple-system,'PingFang SC',sans-serif;user-select:none}
+#grid{display:grid;grid-template-columns:repeat(4,72px);gap:9px}
+.card{height:72px;border:none;border-radius:10px;background:#2c3145;font-size:32px;cursor:pointer;color:transparent;transition:transform .15s,background .2s}
+.card.open{background:#46518a;color:#fff;transform:scale(1.05)}
+.card.done{background:#1f7a4d;color:#fff;cursor:default}
+#ov{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.65);font-size:22px;cursor:pointer;text-align:center}
+</style></head><body>
+<div id="info">步数 0</div><div id="grid"></div><div id="ov"></div>
+<script>
+var E=['🍎','🚀','🐱','🌙','🎲','🍩','⚽','🎧'];
+var grid=document.getElementById('grid'),info=document.getElementById('info'),ov=document.getElementById('ov');
+var deck,first,lock,moves,done;
+function init(){deck=E.concat(E).sort(function(){return Math.random()-0.5});
+first=null;lock=false;moves=0;done=0;info.textContent='步数 0';ov.style.display='none';
+grid.innerHTML=deck.map(function(e,i){return '<button class="card" data-i="'+i+'">'+e+'</button>'}).join('')}
+grid.addEventListener('click',function(ev){
+var b=ev.target.closest('.card');
+if(!b||lock||b.classList.contains('open')||b.classList.contains('done'))return;
+b.classList.add('open');
+if(!first){first=b;return}
+moves++;info.textContent='步数 '+moves;
+var a=first;first=null;
+if(deck[a.dataset.i]===deck[b.dataset.i]){a.classList.add('done');b.classList.add('done');a.classList.remove('open');b.classList.remove('open');done++;
+if(done===8){ov.innerHTML='🎉 完成!共 '+moves+' 步<br>点击再来一局';ov.style.display='flex'}}
+else{lock=true;setTimeout(function(){a.classList.remove('open');b.classList.remove('open');lock=false},700)}});
+ov.addEventListener('click',init);
+init();
+</script></body></html>

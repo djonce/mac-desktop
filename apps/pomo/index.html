@@ -1,0 +1,33 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+html,body{height:100%;margin:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:#1c1c24;color:#fff;font-family:-apple-system,'PingFang SC',sans-serif;user-select:none}
+#mode button{border:1px solid #444;background:none;color:#aaa;border-radius:14px;padding:5px 14px;cursor:pointer;font-size:13px;margin:0 4px}
+#mode button.on{background:#ff6b5e;border-color:#ff6b5e;color:#fff}
+#wrap{position:relative;width:210px;height:210px}
+svg{transform:rotate(-90deg)}
+#time{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:44px;font-weight:200;font-variant-numeric:tabular-nums}
+#ctrl button{border:none;border-radius:8px;padding:9px 26px;cursor:pointer;font-size:15px;margin:0 5px}
+#st{background:#ff6b5e;color:#fff}#rs{background:#3a3a44;color:#ddd}
+</style></head><body>
+<div id="mode"><button data-m="25" class="on">专注 25</button><button data-m="5">休息 5</button></div>
+<div id="wrap"><svg width="210" height="210"><circle cx="105" cy="105" r="94" fill="none" stroke="#33333d" stroke-width="9"/><circle id="prog" cx="105" cy="105" r="94" fill="none" stroke="#ff6b5e" stroke-width="9" stroke-linecap="round" stroke-dasharray="590.6" stroke-dashoffset="0"/></svg><div id="time">25:00</div></div>
+<div id="ctrl"><button id="st">开始</button><button id="rs">重置</button></div>
+<script>
+var total=1500,left=1500,timer=null;
+var timeEl=document.getElementById('time'),prog=document.getElementById('prog'),st=document.getElementById('st');
+function show(){var m=Math.floor(left/60),s=left%60;
+timeEl.textContent=(m<10?'0':'')+m+':'+(s<10?'0':'')+s;
+prog.setAttribute('stroke-dashoffset',590.6*(1-left/total))}
+function beep(){try{var a=new (window.AudioContext||window.webkitAudioContext)();
+[0,0.25,0.5].forEach(function(d){var o=a.createOscillator(),g=a.createGain();o.connect(g);g.connect(a.destination);
+o.frequency.value=880;g.gain.setValueAtTime(0.25,a.currentTime+d);g.gain.exponentialRampToValueAtTime(0.001,a.currentTime+d+0.2);
+o.start(a.currentTime+d);o.stop(a.currentTime+d+0.22)})}catch(e){}}
+function tick(){left--;show();if(left<=0){stop();beep();timeEl.textContent='完成!'}}
+function stop(){clearInterval(timer);timer=null;st.textContent='开始'}
+st.addEventListener('click',function(){
+if(timer){stop()}else{if(left<=0)left=total;timer=setInterval(tick,1000);st.textContent='暂停'}});
+document.getElementById('rs').addEventListener('click',function(){stop();left=total;show()});
+document.querySelectorAll('#mode button').forEach(function(b){b.addEventListener('click',function(){
+document.querySelectorAll('#mode button').forEach(function(x){x.classList.remove('on')});
+b.classList.add('on');stop();total=left=b.dataset.m*60;show()})});
+show();
+</script></body></html>

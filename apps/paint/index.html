@@ -1,0 +1,26 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+html,body{height:100%;margin:0;display:flex;flex-direction:column;font-family:-apple-system,'PingFang SC',sans-serif;background:#ececf0}
+#bar{display:flex;align-items:center;gap:10px;padding:8px 12px;background:#fff;border-bottom:1px solid #ddd;flex-shrink:0}
+#bar input[type=color]{width:34px;height:26px;border:none;background:none;cursor:pointer}
+#bar button{border:1px solid #ccc;background:#fff;border-radius:6px;padding:4px 12px;cursor:pointer;font-size:13px}
+#bar button.on{background:#0a84ff;color:#fff;border-color:#0a84ff}
+canvas{flex:1;cursor:crosshair;touch-action:none}
+</style></head><body>
+<div id="bar"><input type="color" id="col" value="#ff3b30"><input type="range" id="sz" min="2" max="36" value="5"><button id="er">橡皮</button><button id="cl">清空</button><span id="tip" style="font-size:12px;color:#999">按住拖动来画画</span></div>
+<canvas id="c"></canvas>
+<script>
+var c=document.getElementById('c'),x=c.getContext('2d'),er=document.getElementById('er');
+var eraser=false,down=false,px,py;
+function size(){var t=document.createElement('canvas');t.width=c.width;t.height=c.height;t.getContext('2d').drawImage(c,0,0);
+c.width=c.clientWidth;c.height=c.clientHeight;x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(t,0,0)}
+addEventListener('resize',size);
+requestAnimationFrame(function(){size()});
+c.addEventListener('pointerdown',function(e){down=true;px=e.offsetX;py=e.offsetY;dot(e)});
+c.addEventListener('pointermove',function(e){if(down)dot(e)});
+addEventListener('pointerup',function(){down=false});
+function dot(e){x.strokeStyle=eraser?'#fff':document.getElementById('col').value;
+x.lineWidth=document.getElementById('sz').value*(eraser?2:1);x.lineCap='round';x.lineJoin='round';
+x.beginPath();x.moveTo(px,py);x.lineTo(e.offsetX,e.offsetY);x.stroke();px=e.offsetX;py=e.offsetY}
+er.addEventListener('click',function(){eraser=!eraser;er.classList.toggle('on',eraser)});
+document.getElementById('cl').addEventListener('click',function(){x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height)});
+</script></body></html>

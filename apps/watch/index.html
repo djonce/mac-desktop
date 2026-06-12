@@ -1,0 +1,23 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+html,body{height:100%;margin:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:#101016;color:#fff;font-family:-apple-system,'PingFang SC',sans-serif;user-select:none}
+#t{font-size:54px;font-weight:200;font-variant-numeric:tabular-nums}
+#ctrl button{border:none;border-radius:50%;width:72px;height:72px;cursor:pointer;font-size:14px;margin:0 9px}
+#go{background:#0c3;color:#cfc}#go.stop{background:#c33;color:#fcc}#lap{background:#333;color:#ddd}
+ol{max-height:130px;overflow:auto;font-size:13px;color:#aaa;min-width:170px;padding-left:34px;font-variant-numeric:tabular-nums}
+</style></head><body>
+<div id="t">00:00.00</div>
+<div id="ctrl"><button id="lap">计次</button><button id="go">启动</button></div>
+<ol id="laps"></ol>
+<script>
+var t0=0,acc=0,raf=null;
+var tEl=document.getElementById('t'),go=document.getElementById('go');
+function fmt(ms){var m=Math.floor(ms/60000),s=Math.floor(ms%60000/1000),c=Math.floor(ms%1000/10);
+return (m<10?'0':'')+m+':'+(s<10?'0':'')+s+'.'+(c<10?'0':'')+c}
+function loop(){tEl.textContent=fmt(acc+performance.now()-t0);raf=requestAnimationFrame(loop)}
+go.addEventListener('click',function(){
+if(raf){acc+=performance.now()-t0;cancelAnimationFrame(raf);raf=null;go.textContent='启动';go.classList.remove('stop')}
+else{t0=performance.now();loop();go.textContent='停止';go.classList.add('stop')}});
+document.getElementById('lap').addEventListener('click',function(){
+if(raf){var li=document.createElement('li');li.textContent=fmt(acc+performance.now()-t0);document.getElementById('laps').prepend(li)}
+else{acc=0;tEl.textContent='00:00.00';document.getElementById('laps').innerHTML=''}});
+</script></body></html>
