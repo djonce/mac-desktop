@@ -1,0 +1,111 @@
+<!doctype html><html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>
+*{margin:0;box-sizing:border-box;user-select:none;touch-action:none}
+html,body{height:100%;display:flex;flex-direction:column;align-items:center;background:#2a211c;color:#e8ddcc;font-family:-apple-system,'PingFang SC',sans-serif}
+#top{display:flex;align-items:center;gap:16px;padding:14px 0 10px;font-size:13.5px}
+#top button{border:none;background:#46382e;color:#d8c9b4;padding:7px 16px;border-radius:8px;cursor:pointer;font-size:13px}
+#top button:hover{background:#57463a}
+#moves{font-variant-numeric:tabular-nums}
+#board{position:relative;background:#1d1611;border-radius:12px;padding:8px;
+  box-shadow:inset 0 2px 12px rgba(0,0,0,.7),0 14px 40px rgba(0,0,0,.5)}
+#exit{position:absolute;left:50%;bottom:-7px;transform:translateX(-50%);width:160px;height:7px;
+  background:#7fae6a;border-radius:0 0 6px 6px}
+.pc{position:absolute;border-radius:9px;display:flex;align-items:center;justify-content:center;
+  font-size:26px;font-weight:700;cursor:grab;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.4);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.25),inset 0 -3px 0 rgba(0,0,0,.25),0 3px 8px rgba(0,0,0,.35);
+  transition:left .14s ease-out,top .14s ease-out;writing-mode:vertical-rl;letter-spacing:6px}
+.pc.h{writing-mode:horizontal-tb;letter-spacing:10px}
+.pc:active{cursor:grabbing}
+.cao{background:linear-gradient(180deg,#c8523f,#9c3526);font-size:38px;letter-spacing:0}
+.gen{background:linear-gradient(180deg,#4f7d8c,#36596a)}
+.guan{background:linear-gradient(180deg,#c2913c,#96671f)}
+.sol{background:linear-gradient(180deg,#6e7480,#4d525e);font-size:20px}
+#tip{padding:12px 0;font-size:12.5px;color:#a8987f}
+#win{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(15,10,5,.8);backdrop-filter:blur(5px)}
+#win .card{background:#3a2e24;border-radius:18px;padding:32px 46px;text-align:center}
+#win h2{font-size:22px;margin-bottom:8px}
+#win p{font-size:14px;color:#c4b394;margin-bottom:20px}
+#win button{border:none;background:#c8523f;color:#fff;padding:10px 30px;border-radius:9px;font-size:14px;cursor:pointer}
+</style></head><body>
+<div id="top"><span>步数 <b id="moves">0</b></span><button id="reset">重新开始</button></div>
+<div id="board"><div id="exit"></div></div>
+<div id="tip">拖动滑块,送曹操到底部出口 · 经典「横刀立马」开局</div>
+<div id="win"><div class="card"><h2>🎉 曹操逃出华容道!</h2><p>共用 <b id="winMoves">0</b> 步(最少 81 步)</p><button id="again">再来一局</button></div></div>
+<script>
+const U=78,GAP=4,COLS=4,ROWS=5;
+const board=document.getElementById('board');
+board.style.width=COLS*U+(COLS+1)*GAP+'px';
+board.style.height=ROWS*U+(ROWS+1)*GAP+'px';
+const START=[
+  {n:'曹操',c:'cao',x:1,y:0,w:2,h:2},
+  {n:'张飞',c:'gen',x:0,y:0,w:1,h:2},
+  {n:'赵云',c:'gen',x:3,y:0,w:1,h:2},
+  {n:'马超',c:'gen',x:0,y:2,w:1,h:2},
+  {n:'黄忠',c:'gen',x:3,y:2,w:1,h:2},
+  {n:'关羽',c:'guan h',x:1,y:2,w:2,h:1},
+  {n:'兵',c:'sol',x:1,y:3,w:1,h:1},
+  {n:'兵',c:'sol',x:2,y:3,w:1,h:1},
+  {n:'兵',c:'sol',x:0,y:4,w:1,h:1},
+  {n:'兵',c:'sol',x:3,y:4,w:1,h:1},
+];
+let pieces=[],moves=0,won=false;
+const px=v=>GAP+v*(U+GAP);
+
+function reset(){
+  pieces=START.map(p=>({...p}));moves=0;won=false;
+  document.getElementById('moves').textContent='0';
+  document.getElementById('win').style.display='none';
+  board.querySelectorAll('.pc').forEach(e=>e.remove());
+  pieces.forEach((p,i)=>{
+    const e=document.createElement('div');
+    e.className='pc '+p.c;e.dataset.i=i;
+    e.style.width=p.w*U+(p.w-1)*GAP+'px';
+    e.style.height=p.h*U+(p.h-1)*GAP+'px';
+    e.textContent=p.n;
+    p.el=e;board.appendChild(e);place(p);
+  });
+}
+function place(p){p.el.style.left=px(p.x)+'px';p.el.style.top=px(p.y)+'px'}
+function occupied(x,y,skip){
+  if(x<0||y<0)return true;
+  return pieces.some(q=>q!==skip&&x>=q.x&&x<q.x+q.w&&y>=q.y&&y<q.y+q.h);
+}
+function canMove(p,dx,dy){
+  if(p.x+dx<0||p.y+dy<0||p.x+dx+p.w>COLS||p.y+dy+p.h>ROWS)return false;
+  for(let yy=p.y+dy;yy<p.y+dy+p.h;yy++)
+    for(let xx=p.x+dx;xx<p.x+dx+p.w;xx++)
+      if(occupied(xx,yy,p))return false;
+  return true;
+}
+function move(p,dx,dy){
+  if(won||!canMove(p,dx,dy))return false;
+  p.x+=dx;p.y+=dy;place(p);
+  moves++;document.getElementById('moves').textContent=moves;
+  if(p.c==='cao'&&p.x===1&&p.y===3){
+    won=true;
+    setTimeout(()=>{
+      document.getElementById('winMoves').textContent=moves;
+      document.getElementById('win').style.display='flex';
+    },250);
+  }
+  return true;
+}
+let drag=null;
+board.addEventListener('pointerdown',e=>{
+  const el=e.target.closest('.pc');if(!el)return;
+  drag={p:pieces[+el.dataset.i],sx:e.clientX,sy:e.clientY};
+  el.setPointerCapture(e.pointerId);
+});
+board.addEventListener('pointermove',e=>{
+  if(!drag)return;
+  const dx=e.clientX-drag.sx,dy=e.clientY-drag.sy,TH=U*0.45;
+  if(Math.abs(dx)<TH&&Math.abs(dy)<TH)return;
+  let ok=false;
+  if(Math.abs(dx)>Math.abs(dy))ok=move(drag.p,dx>0?1:-1,0);
+  else ok=move(drag.p,0,dy>0?1:-1);
+  if(ok){drag.sx=e.clientX;drag.sy=e.clientY}
+});
+board.addEventListener('pointerup',()=>drag=null);
+document.getElementById('reset').addEventListener('click',reset);
+document.getElementById('again').addEventListener('click',reset);
+reset();
+</script></body></html>

@@ -1,0 +1,96 @@
+<!doctype html><html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>
+*{margin:0;box-sizing:border-box;user-select:none}
+html,body{height:100%;display:flex;flex-direction:column;background:#22242c;color:#dde1e8;font-family:-apple-system,'PingFang SC',sans-serif}
+#wrap{flex:1;overflow:auto;padding:18px 22px}
+#hero{display:flex;gap:16px;align-items:stretch;margin-bottom:18px}
+#big{width:120px;height:110px;border-radius:14px;box-shadow:0 10px 28px rgba(0,0,0,.4);
+  border:1px solid rgba(255,255,255,.12);cursor:pointer;position:relative}
+#big input{position:absolute;inset:0;opacity:0;cursor:pointer}
+#vals{flex:1;display:flex;flex-direction:column;gap:7px;justify-content:center}
+.vrow{display:flex;align-items:center;gap:9px;font:13px "SF Mono",Menlo,monospace}
+.vrow .lab{width:34px;font-size:11px;color:#7a8090;font-family:-apple-system,sans-serif}
+.vrow input{background:#2c2f3a;border:1px solid rgba(255,255,255,.1);border-radius:7px;
+  color:#dde1e8;padding:5px 10px;font:inherit;width:150px;outline:none}
+.vrow input:focus{border-color:#5a8de0}
+.vrow span{color:#aab0bf}
+.vrow button{border:none;background:#2c2f3a;color:#8a90a0;border-radius:6px;padding:4px 9px;font-size:11px;cursor:pointer}
+.vrow button:hover{background:#3a3e4d;color:#fff}
+h3{font-size:12.5px;color:#8a90a0;margin:16px 0 9px;font-weight:600}
+.chips{display:flex;gap:7px;flex-wrap:wrap}
+.chip{width:54px;height:54px;border-radius:10px;cursor:pointer;position:relative;
+  border:1px solid rgba(255,255,255,.1);transition:transform .15s}
+.chip:hover{transform:scale(1.1)}
+.chip small{position:absolute;left:0;right:0;bottom:-17px;text-align:center;
+  font:9.5px "SF Mono",Menlo,monospace;color:#7a8090}
+.chips{margin-bottom:22px}
+#toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%) translateY(60px);
+  background:#3866c2;color:#fff;padding:8px 20px;border-radius:9px;font-size:13px;
+  transition:transform .3s;pointer-events:none}
+#toast.show{transform:translateX(-50%) translateY(0)}
+</style></head><body>
+<div id="wrap">
+  <div id="hero">
+    <div id="big"><input type="color" id="picker" value="#5a8de0"></div>
+    <div id="vals">
+      <div class="vrow"><span class="lab">HEX</span><input id="hex" spellcheck="false"><button data-c="hex">复制</button></div>
+      <div class="vrow"><span class="lab">RGB</span><span id="rgb"></span><button data-c="rgb">复制</button></div>
+      <div class="vrow"><span class="lab">HSL</span><span id="hsl"></span><button data-c="hsl">复制</button></div>
+    </div>
+  </div>
+  <h3>明暗阶</h3><div class="chips" id="shades"></div>
+  <h3>配色方案 · 互补 / 分裂互补 / 三元 / 类似</h3><div class="chips" id="harmony"></div>
+</div>
+<div id="toast">已复制</div>
+<script>
+const $=s=>document.querySelector(s);
+let H=215,S=68,L=62;
+const hslStr=(h,s,l)=>`hsl(${Math.round(h)}, ${Math.round(s)}%, ${Math.round(l)}%)`;
+function hsl2rgb(h,s,l){
+  s/=100;l/=100;
+  const k=n=>(n+h/30)%12,a=s*Math.min(l,1-l);
+  const f=n=>l-a*Math.max(-1,Math.min(k(n)-3,Math.min(9-k(n),1)));
+  return [f(0),f(8),f(4)].map(v=>Math.round(v*255));
+}
+function rgb2hex(r,g,b){return '#'+[r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('')}
+function hex2hsl(hex){
+  const m=hex.replace('#','');
+  if(!/^[0-9a-fA-F]{6}$/.test(m))return null;
+  let r=parseInt(m.slice(0,2),16)/255,g=parseInt(m.slice(2,4),16)/255,b=parseInt(m.slice(4,6),16)/255;
+  const mx=Math.max(r,g,b),mn=Math.min(r,g,b),d=mx-mn;
+  let h=0;
+  if(d){if(mx===r)h=((g-b)/d)%6;else if(mx===g)h=(b-r)/d+2;else h=(r-g)/d+4;h*=60;if(h<0)h+=360}
+  const l=(mx+mn)/2,s=d?d/(1-Math.abs(2*l-1)):0;
+  return [h,s*100,l*100];
+}
+const hexOf=(h,s,l)=>rgb2hex(...hsl2rgb(h,s,l));
+function chip(h,s,l,label){
+  const hx=hexOf(h,s,l);
+  return `<div class="chip" data-h="${h}" data-s="${s}" data-l="${l}" style="background:${hx}" title="${label||hx}"><small>${hx}</small></div>`;
+}
+function render(){
+  const hx=hexOf(H,S,L),[r,g,b]=hsl2rgb(H,S,L);
+  $('#big').style.background=hx;
+  $('#picker').value=hx;
+  if(document.activeElement!==$('#hex'))$('#hex').value=hx;
+  $('#rgb').textContent=`rgb(${r}, ${g}, ${b})`;
+  $('#hsl').textContent=hslStr(H,S,L);
+  $('#shades').innerHTML=[94,84,74,64,54,44,34,24,14].map(l=>chip(H,S,l)).join('');
+  const harm=[[H+180,'互补'],[H+150,'分裂'],[H+210,'分裂'],[H+120,'三元'],[H+240,'三元'],[H+30,'类似'],[H-30,'类似']];
+  $('#harmony').innerHTML=harm.map(([h,t])=>chip((h+360)%360,S,L,t)).join('');
+}
+document.addEventListener('click',e=>{
+  const c=e.target.closest('.chip');
+  if(c){H=+c.dataset.h;S=+c.dataset.s;L=+c.dataset.l;render()}
+  const cp=e.target.closest('[data-c]');
+  if(cp){
+    const txt=cp.dataset.c==='hex'?$('#hex').value:cp.dataset.c==='rgb'?$('#rgb').textContent:$('#hsl').textContent;
+    const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);
+    ta.select();try{document.execCommand('copy')}catch(_){ }
+    ta.remove();
+    const t=$('#toast');t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1100);
+  }
+});
+$('#picker').addEventListener('input',e=>{const v=hex2hsl(e.target.value);if(v)[H,S,L]=v;render()});
+$('#hex').addEventListener('input',e=>{const v=hex2hsl(e.target.value);if(v){[H,S,L]=v;render()}});
+render();
+</script></body></html>

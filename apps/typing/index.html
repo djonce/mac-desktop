@@ -1,0 +1,146 @@
+<!doctype html><html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>
+*{margin:0;box-sizing:border-box}
+html,body{height:100%;display:flex;flex-direction:column;background:#1d1f27;color:#dfe3ea;font-family:-apple-system,'PingFang SC',sans-serif}
+#top{display:flex;align-items:center;gap:10px;padding:14px 20px 0}
+.seg{display:flex;background:#2b2e3a;border-radius:8px;padding:3px;gap:3px}
+.seg button{border:none;background:none;color:#9aa1ad;padding:5px 14px;border-radius:6px;font-size:13px;cursor:pointer}
+.seg button.on{background:#46506b;color:#fff}
+#re{border:none;background:#2b2e3a;color:#9aa1ad;padding:6px 14px;border-radius:8px;cursor:pointer;font-size:13px}
+#re:hover{background:#393d4c}
+#hud{display:flex;gap:26px;padding:14px 22px;font-variant-numeric:tabular-nums}
+#hud div{text-align:center}
+#hud b{display:block;font-size:24px;font-weight:600;color:#7fb3ff}
+#hud small{font-size:11px;color:#7a8090}
+#text{flex:1;margin:0 20px;padding:22px 24px;background:#262935;border-radius:14px;
+  font-size:21px;line-height:2;letter-spacing:1px;overflow:auto;cursor:text;
+  font-family:'Songti SC',Georgia,'PingFang SC',serif}
+#text span{border-radius:3px}
+#text span.ok{color:#6dd17e}
+#text span.bad{color:#ff7468;background:rgba(255,90,70,.15);text-decoration:underline}
+#text span.cur{background:#46506b;animation:blink 1s step-end infinite}
+@keyframes blink{50%{background:transparent}}
+#text span.dim{color:#6b7080}
+#inp{position:absolute;opacity:0;pointer-events:none}
+#tip{padding:10px 22px 16px;font-size:12.5px;color:#7a8090}
+#done{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(10,12,18,.78);backdrop-filter:blur(6px)}
+#done .card{background:#262935;border-radius:18px;padding:30px 44px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+#done h2{font-size:18px;margin-bottom:18px}
+#done .nums{display:flex;gap:34px;margin-bottom:22px}
+#done .nums b{display:block;font-size:30px;color:#7fb3ff;font-weight:600}
+#done .nums small{font-size:12px;color:#7a8090}
+#done button{border:none;background:#4a7dde;color:#fff;padding:9px 28px;border-radius:9px;font-size:14px;cursor:pointer}
+</style></head><body>
+<div id="top">
+  <div class="seg"><button id="cn" class="on">中文</button><button id="en">English</button></div>
+  <button id="re">↻ 换一段</button>
+</div>
+<div id="hud">
+  <div><b id="hTime">60</b><small>剩余秒数</small></div>
+  <div><b id="hCpm">0</b><small>字符/分钟</small></div>
+  <div><b id="hAcc">100%</b><small>准确率</small></div>
+  <div><b id="hErr">0</b><small>错字</small></div>
+</div>
+<div id="text"></div>
+<input id="inp" autocomplete="off">
+<div id="tip">点击文字区域开始,直接打字 · 计时从第一个字符开始,60 秒或完成全文结束</div>
+<div id="done"><div class="card"><h2>测试完成 🎉</h2>
+  <div class="nums">
+    <div><b id="dCpm">0</b><small>字符/分钟</small></div>
+    <div><b id="dAcc">0%</b><small>准确率</small></div>
+    <div><b id="dErr">0</b><small>错字</small></div>
+  </div>
+  <button id="again">再来一次</button></div></div>
+<script>
+const CN=[
+'白日依山尽,黄河入海流。欲穷千里目,更上一层楼。海内存知己,天涯若比邻。无为在歧路,儿女共沾巾。',
+'这是一个用纯前端技术实现的网页操作系统,所有的窗口、动画与应用都运行在你的浏览器之中,不需要任何后端服务。',
+'合抱之木,生于毫末;九层之台,起于累土;千里之行,始于足下。知人者智,自知者明;胜人者有力,自胜者强。',
+'打字的要诀在于节奏而不是蛮力,眼睛看着下一个词,手指自然落下,错了不要慌,稳住呼吸继续向前。',
+'春有百花秋有月,夏有凉风冬有雪。若无闲事挂心头,便是人间好时节。行到水穷处,坐看云起时。'
+];
+const EN=[
+'The quick brown fox jumps over the lazy dog while the five boxing wizards jump quickly beside it.',
+'Typing fast is less about speed and more about rhythm: keep your eyes one word ahead and let your fingers fall naturally.',
+'A journey of a thousand miles begins with a single step, and a tower of nine stories rises from a heap of earth.',
+'This little operating system runs entirely in your browser: every window, dock bounce and app is plain JavaScript.',
+'Practice does not make perfect; perfect practice makes perfect, so slow down until accuracy comes first.'
+];
+let pool=CN,target='',pos=0,errs=0,typed=0,t0=0,timer=null,running=false,finished=false;
+const textEl=document.getElementById('text'),inp=document.getElementById('inp');
+
+function pick(){
+  target=pool[Math.random()*pool.length|0];
+  pos=0;errs=0;typed=0;running=false;finished=false;
+  clearInterval(timer);
+  document.getElementById('hTime').textContent='60';
+  document.getElementById('hCpm').textContent='0';
+  document.getElementById('hAcc').textContent='100%';
+  document.getElementById('hErr').textContent='0';
+  document.getElementById('done').style.display='none';
+  render();
+  inp.value='';
+}
+function render(){
+  textEl.innerHTML=[...target].map((ch,i)=>{
+    let cls=i<pos?(marks[i]?'bad':'ok'):i===pos?'cur':'dim';
+    return `<span class="${cls}">${ch===' '?'&nbsp;':ch}</span>`;
+  }).join('');
+  const cur=textEl.querySelector('.cur');
+  if(cur)cur.scrollIntoView({block:'center',behavior:'smooth'});
+}
+let marks=[];
+function start(){
+  if(running)return;
+  running=true;t0=Date.now();
+  timer=setInterval(()=>{
+    const left=60-((Date.now()-t0)/1000|0);
+    document.getElementById('hTime').textContent=Math.max(0,left);
+    updHud();
+    if(left<=0)finish();
+  },250);
+}
+function updHud(){
+  const min=(Date.now()-t0)/60000;
+  const cpm=min>0?Math.round((pos-errsIn())/min):0;
+  document.getElementById('hCpm').textContent=Math.max(0,cpm);
+  document.getElementById('hAcc').textContent=typed?Math.round((typed-errs)/typed*100)+'%':'100%';
+  document.getElementById('hErr').textContent=errs;
+}
+function errsIn(){let n=0;for(let i=0;i<pos;i++)if(marks[i])n++;return n}
+function finish(){
+  if(finished)return;finished=true;running=false;clearInterval(timer);
+  const min=Math.max((Date.now()-t0)/60000,1/60);
+  document.getElementById('dCpm').textContent=Math.max(0,Math.round((pos-errsIn())/min));
+  document.getElementById('dAcc').textContent=typed?Math.round((typed-errs)/typed*100)+'%':'100%';
+  document.getElementById('dErr').textContent=errs;
+  document.getElementById('done').style.display='flex';
+}
+inp.addEventListener('input',()=>{
+  if(finished){inp.value='';return}
+  const v=inp.value;
+  if(!v)return;
+  inp.value='';
+  for(const ch of v){
+    if(pos>=target.length)break;
+    start();typed++;
+    marks[pos]=ch!==target[pos];
+    if(marks[pos])errs++;
+    pos++;
+  }
+  render();updHud();
+  if(pos>=target.length)finish();
+});
+inp.addEventListener('keydown',e=>{
+  if(e.key==='Backspace'&&pos>0&&!finished){
+    pos--;if(marks[pos])errs--;marks[pos]=false;render();updHud();e.preventDefault();
+  }
+});
+textEl.addEventListener('click',()=>inp.focus());
+document.getElementById('re').addEventListener('click',()=>{marks=[];pick()});
+document.getElementById('again').addEventListener('click',()=>{marks=[];pick();inp.focus()});
+document.getElementById('cn').addEventListener('click',function(){pool=CN;seg(this);marks=[];pick()});
+document.getElementById('en').addEventListener('click',function(){pool=EN;seg(this);marks=[];pick()});
+function seg(b){document.querySelectorAll('.seg button').forEach(x=>x.classList.remove('on'));b.classList.add('on')}
+marks=[];pick();
+setTimeout(()=>inp.focus(),100);
+</script></body></html>

@@ -1,0 +1,129 @@
+<!doctype html><html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>
+*{margin:0;box-sizing:border-box;user-select:none}
+html,body{height:100%;display:flex;flex-direction:column;align-items:center;background:#2b2620;color:#e8dfd0;font-family:-apple-system,'PingFang SC',sans-serif}
+#top{display:flex;align-items:center;gap:10px;padding:12px 0 8px;font-size:13px}
+#top .seg{display:flex;background:#3a342c;border-radius:8px;padding:3px;gap:3px}
+#top .seg button{border:none;background:none;color:#b9ad99;padding:5px 13px;border-radius:6px;font-size:13px;cursor:pointer}
+#top .seg button.on{background:#5b5246;color:#fff}
+#top button.act{border:none;background:#3a342c;color:#b9ad99;padding:7px 14px;border-radius:8px;cursor:pointer;font-size:13px}
+#top button.act:hover{background:#4a4337}
+#status{font-size:13px;height:18px;margin-bottom:6px;color:#d8c9a8}
+canvas{border-radius:10px;box-shadow:0 14px 40px rgba(0,0,0,.5);cursor:pointer}
+</style></head><body>
+<div id="top">
+  <div class="seg"><button id="mAi" class="on">人机对战</button><button id="mPvp">双人对战</button></div>
+  <button class="act" id="undo">悔棋</button>
+  <button class="act" id="restart">重新开始</button>
+</div>
+<div id="status"></div>
+<canvas id="c" width="496" height="496"></canvas>
+<script>
+const N=15,CELL=32,M=24,cv=document.getElementById('c'),x2=cv.getContext('2d');
+let board,turn,history,over,ai=true,thinking=false;
+
+function reset(){board=Array.from({length:N},()=>Array(N).fill(0));turn=1;history=[];over=false;thinking=false;draw();say('黑棋先行'+(ai?'(你执黑)':''))}
+function say(s){document.getElementById('status').textContent=s}
+
+function draw(win){
+  x2.fillStyle='#d9a95e';x2.fillRect(0,0,496,496);
+  const g=x2.createRadialGradient(248,200,40,248,248,360);g.addColorStop(0,'rgba(255,235,200,.25)');g.addColorStop(1,'rgba(120,70,20,.18)');
+  x2.fillStyle=g;x2.fillRect(0,0,496,496);
+  x2.strokeStyle='rgba(60,35,10,.75)';x2.lineWidth=1;
+  for(let i=0;i<N;i++){
+    x2.beginPath();x2.moveTo(M+i*CELL,M);x2.lineTo(M+i*CELL,M+(N-1)*CELL);x2.stroke();
+    x2.beginPath();x2.moveTo(M,M+i*CELL);x2.lineTo(M+(N-1)*CELL,M+i*CELL);x2.stroke();
+  }
+  [[3,3],[11,3],[7,7],[3,11],[11,11]].forEach(([a,b])=>{x2.beginPath();x2.arc(M+a*CELL,M+b*CELL,3.4,0,7);x2.fillStyle='rgba(60,35,10,.8)';x2.fill()});
+  for(let y=0;y<N;y++)for(let x=0;x<N;x++)if(board[y][x])stone(x,y,board[y][x]);
+  if(history.length&&!win){const[lx,ly]=history[history.length-1];x2.beginPath();x2.arc(M+lx*CELL,M+ly*CELL,4,0,7);x2.fillStyle='#e0413b';x2.fill()}
+  if(win)win.forEach(([wx,wy])=>{x2.beginPath();x2.arc(M+wx*CELL,M+wy*CELL,15.5,0,7);x2.strokeStyle='#e0413b';x2.lineWidth=2.5;x2.stroke()});
+}
+function stone(x,y,p){
+  const cx=M+x*CELL,cy=M+y*CELL,r=13.5;
+  const g=x2.createRadialGradient(cx-5,cy-5,2,cx,cy,r+2);
+  if(p===1){g.addColorStop(0,'#5a5a5a');g.addColorStop(1,'#0a0a0a')}else{g.addColorStop(0,'#ffffff');g.addColorStop(1,'#c9c9c9')}
+  x2.beginPath();x2.arc(cx,cy,r,0,7);x2.fillStyle=g;x2.fill();
+  x2.strokeStyle='rgba(0,0,0,.25)';x2.lineWidth=.8;x2.stroke();
+}
+
+function checkWin(x,y){
+  const p=board[y][x];
+  for(const[dx,dy]of[[1,0],[0,1],[1,1],[1,-1]]){
+    const line=[[x,y]];
+    for(const s of[1,-1]){let i=1;while(true){const nx=x+dx*i*s,ny=y+dy*i*s;
+      if(nx<0||ny<0||nx>=N||ny>=N||board[ny][nx]!==p)break;line.push([nx,ny]);i++}}
+    if(line.length>=5)return line;
+  }
+  return null;
+}
+
+/* ---- AI:启发式打分 ---- */
+function runScore(cnt,open){
+  if(cnt>=5)return 1e7;
+  if(cnt===4)return open===2?8e5:1e5;
+  if(cnt===3)return open===2?4e4:4e3;
+  if(cnt===2)return open===2?800:150;
+  return open===2?40:10;
+}
+function evalCell(x,y,p){
+  let s=0;
+  for(const[dx,dy]of[[1,0],[0,1],[1,1],[1,-1]]){
+    let cnt=1,open=0;
+    for(const dir of[1,-1]){let i=1;
+      while(true){const nx=x+dx*i*dir,ny=y+dy*i*dir;
+        if(nx<0||ny<0||nx>=N||ny>=N){break}
+        if(board[ny][nx]===p){cnt++;i++}
+        else{if(board[ny][nx]===0)open++;break}}}
+    s+=runScore(cnt,open);
+  }
+  return s;
+}
+function aiMove(){
+  let best=null,bs=-1;
+  for(let y=0;y<N;y++)for(let x=0;x<N;x++){
+    if(board[y][x])continue;
+    let near=false;
+    for(let dy=-2;dy<=2&&!near;dy++)for(let dx=-2;dx<=2;dx++){
+      const nx=x+dx,ny=y+dy;
+      if(nx>=0&&ny>=0&&nx<N&&ny<N&&board[ny][nx]){near=true;break}}
+    if(!near&&history.length)continue;
+    const s=evalCell(x,y,2)+evalCell(x,y,1)*0.92+Math.random()*8-(Math.abs(x-7)+Math.abs(y-7))*0.5;
+    if(s>bs){bs=s;best=[x,y]}
+  }
+  return best||[7,7];
+}
+
+function place(x,y){
+  board[y][x]=turn;history.push([x,y]);
+  const win=checkWin(x,y);
+  draw(win);
+  if(win){over=true;say((turn===1?'⚫ 黑棋':'⚪ 白棋')+' 获胜!');return true}
+  if(history.length===N*N){over=true;say('平局');return true}
+  turn=3-turn;
+  say(ai?(turn===1?'轮到你了(黑)':'AI 思考中…'):(turn===1?'轮到 ⚫ 黑棋':'轮到 ⚪ 白棋'));
+  return false;
+}
+
+cv.addEventListener('click',e=>{
+  if(over||thinking)return;
+  if(ai&&turn===2)return;
+  const r=cv.getBoundingClientRect();
+  const x=Math.round((e.clientX-r.left-M)/CELL),y=Math.round((e.clientY-r.top-M)/CELL);
+  if(x<0||y<0||x>=N||y>=N||board[y][x])return;
+  if(place(x,y))return;
+  if(ai){thinking=true;
+    setTimeout(()=>{const[ax,ay]=aiMove();thinking=false;if(!over)place(ax,ay)},220)}
+});
+document.getElementById('undo').addEventListener('click',()=>{
+  if(thinking||!history.length)return;
+  const n=ai?(history.length>=2?2:1):1;
+  for(let i=0;i<n;i++){const m=history.pop();if(m)board[m[1]][m[0]]=0}
+  over=false;turn=ai?1:(n===1?3-turn:turn);
+  draw();say('已悔棋');
+});
+document.getElementById('restart').addEventListener('click',reset);
+document.getElementById('mAi').addEventListener('click',()=>{ai=true;mode();reset()});
+document.getElementById('mPvp').addEventListener('click',()=>{ai=false;mode();reset()});
+function mode(){document.getElementById('mAi').classList.toggle('on',ai);document.getElementById('mPvp').classList.toggle('on',!ai)}
+reset();
+</script></body></html>

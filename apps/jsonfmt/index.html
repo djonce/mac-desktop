@@ -1,0 +1,87 @@
+<!doctype html><html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>
+*{margin:0;box-sizing:border-box}
+html,body{height:100%;display:flex;flex-direction:column;background:#1e2128;color:#dde1e8;font-family:-apple-system,'PingFang SC',sans-serif}
+#bar{display:flex;align-items:center;gap:8px;padding:9px 14px;border-bottom:1px solid rgba(255,255,255,.07)}
+#bar b{font-size:13px;margin-right:6px}
+#bar button{border:none;background:#2e323e;color:#aeb4c2;padding:6px 14px;border-radius:7px;font-size:12.5px;cursor:pointer}
+#bar button:hover{background:#3a3f4e;color:#fff}
+#bar button.pri{background:#3866c2;color:#fff}
+#stat{margin-left:auto;font-size:12px;color:#7a8090;font-variant-numeric:tabular-nums}
+#main{flex:1;display:flex;min-height:0}
+#in{flex:1;border:none;outline:none;resize:none;background:#181a20;color:#c9cedb;
+  padding:16px 18px;font:13px/1.7 "SF Mono",Menlo,Consolas,monospace}
+#out{flex:1;overflow:auto;padding:16px 18px;border-left:1px solid rgba(255,255,255,.07);
+  font:13px/1.7 "SF Mono",Menlo,Consolas,monospace;white-space:pre;user-select:text}
+.k{color:#7fb3ff}.s{color:#9fe3a1}.n{color:#ffd479}.b{color:#e08fff}.e{color:#ff7468}
+#err{display:none;margin:0 14px 12px;padding:10px 14px;background:rgba(255,90,70,.12);
+  border:1px solid rgba(255,90,70,.3);border-radius:9px;font-size:12.5px;color:#ff9a90;white-space:pre-wrap;font-family:"SF Mono",Menlo,monospace}
+</style></head><body>
+<div id="bar">
+  <b>JSON 工具</b>
+  <button class="pri" id="fmt">格式化</button>
+  <button id="min">压缩</button>
+  <button id="sort">键排序</button>
+  <button id="clr">清空</button>
+  <span id="stat"></span>
+</div>
+<div id="main"><textarea id="in" spellcheck="false" placeholder="粘贴 JSON 到这里…"></textarea><div id="out"></div></div>
+<div id="err"></div>
+<script>
+const inp=document.getElementById('in'),out=document.getElementById('out'),err=document.getElementById('err');
+function hl(json){
+  return json.replace(/("(\\u[a-fA-F\d]{4}|\\[^u]|[^\\"])*")(\s*:)?|\b(true|false|null)\b|-?\d+(\.\d+)?([eE][+-]?\d+)?/g,m=>{
+    let cls='n';
+    if(/^"/.test(m))cls=/:$/.test(m)?'k':'s';
+    else if(/true|false|null/.test(m))cls='b';
+    return `<span class="${cls}">${m.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</span>`;
+  });
+}
+function stats(o,t){
+  let keys=0,depth=0;
+  (function walk(v,d){
+    depth=Math.max(depth,d);
+    if(Array.isArray(v))v.forEach(x=>walk(x,d+1));
+    else if(v&&typeof v==='object'){const ks=Object.keys(v);keys+=ks.length;ks.forEach(k=>walk(v[k],d+1))}
+  })(o,1);
+  document.getElementById('stat').textContent=`${keys} 键 · 深度 ${depth} · ${new Blob([t]).size} B`;
+}
+function show(text,obj){
+  out.innerHTML=hl(text);err.style.display='none';stats(obj,text);
+}
+function fail(e){
+  out.innerHTML='<span class="e">✗ 无效的 JSON</span>';
+  let msg=e.message;
+  const m=msg.match(/position (\d+)/);
+  if(m){
+    const p=+m[1],src=inp.value;
+    const line=src.slice(0,p).split('\n').length;
+    const col=p-src.lastIndexOf('\n',p-1);
+    msg+=`\n→ 第 ${line} 行,第 ${col} 列附近:\n  …${src.slice(Math.max(0,p-26),p)}【这里】${src.slice(p,p+18)}…`;
+  }
+  err.textContent=msg;err.style.display='block';
+  document.getElementById('stat').textContent='';
+}
+function run(transform){
+  const v=inp.value.trim();
+  if(!v){out.textContent='';err.style.display='none';return}
+  try{const o=JSON.parse(v);transform(o)}catch(e){fail(e)}
+}
+const sortKeys=o=>{
+  if(Array.isArray(o))return o.map(sortKeys);
+  if(o&&typeof o==='object')return Object.keys(o).sort().reduce((a,k)=>(a[k]=sortKeys(o[k]),a),{});
+  return o;
+};
+document.getElementById('fmt').addEventListener('click',()=>run(o=>show(JSON.stringify(o,null,2),o)));
+document.getElementById('min').addEventListener('click',()=>run(o=>show(JSON.stringify(o),o)));
+document.getElementById('sort').addEventListener('click',()=>run(o=>show(JSON.stringify(sortKeys(o),null,2),o)));
+document.getElementById('clr').addEventListener('click',()=>{inp.value='';out.textContent='';err.style.display='none';document.getElementById('stat').textContent=''});
+inp.addEventListener('input',()=>run(o=>show(JSON.stringify(o,null,2),o)));
+inp.value=`{
+  "name": "macOS Web",
+  "version": "1.0",
+  "online": true,
+  "apps": ["书阁", "贪吃蛇", "JSON 工具"],
+  "stats": { "stars": 42, "uptime": "13.5h", "backend": null }
+}`;
+run(o=>show(JSON.stringify(o,null,2),o));
+</script></body></html>

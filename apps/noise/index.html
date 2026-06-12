@@ -1,0 +1,100 @@
+<!doctype html><html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>
+*{margin:0;box-sizing:border-box;user-select:none}
+html,body{height:100%;display:flex;flex-direction:column;background:linear-gradient(170deg,#1c2230,#161a24);color:#dfe4ee;font-family:-apple-system,'PingFang SC',sans-serif}
+#head{text-align:center;padding:20px 0 6px}
+#head h1{font-size:19px;font-weight:600}
+#head p{font-size:12px;color:#7d8598;margin-top:4px}
+#cards{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:16px 18px;align-content:start}
+.card{border-radius:15px;padding:15px 16px 13px;background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.08);cursor:pointer;transition:all .25s}
+.card.on{background:rgba(95,140,235,.16);border-color:rgba(120,160,255,.45);box-shadow:0 6px 24px rgba(70,110,220,.25)}
+.card .ic{font-size:26px}
+.card b{display:block;font-size:14px;margin:7px 0 2px}
+.card small{font-size:11px;color:#7d8598}
+.card input{width:100%;margin-top:10px;accent-color:#7fa6ff;cursor:pointer}
+#master{display:flex;align-items:center;gap:12px;padding:12px 22px 18px;font-size:12.5px;color:#9aa2b5}
+#master input{flex:1;accent-color:#7fa6ff}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#3a4256;margin-right:6px;vertical-align:1px}
+.card.on .dot{background:#7fe09a;box-shadow:0 0 8px #7fe09a}
+</style></head><body>
+<div id="head"><h1>白噪音</h1><p>点击卡片开关声音,可叠加混音 · 纯 Web Audio 实时合成</p></div>
+<div id="cards">
+  <div class="card" data-t="rain"><span class="ic">🌧️</span><b><span class="dot"></span>雨声</b><small>窗外的细雨</small><input type="range" min="0" max="100" value="70" data-v="rain"></div>
+  <div class="card" data-t="waves"><span class="ic">🌊</span><b><span class="dot"></span>海浪</b><small>缓慢的潮汐</small><input type="range" min="0" max="100" value="70" data-v="waves"></div>
+  <div class="card" data-t="wind"><span class="ic">🍃</span><b><span class="dot"></span>风声</b><small>山谷里的风</small><input type="range" min="0" max="100" value="60" data-v="wind"></div>
+  <div class="card" data-t="white"><span class="ic">📺</span><b><span class="dot"></span>白噪</b><small>纯净的嘶嘶声</small><input type="range" min="0" max="100" value="40" data-v="white"></div>
+</div>
+<div id="master">🔊 总音量<input type="range" min="0" max="100" value="80" id="mvol"></div>
+<script>
+let ctx=null,master=null;
+const tracks={};
+function ensureCtx(){
+  if(ctx)return;
+  ctx=new (window.AudioContext||window.webkitAudioContext)();
+  master=ctx.createGain();
+  master.gain.value=document.getElementById('mvol').value/100*0.9;
+  master.connect(ctx.destination);
+}
+function noiseSrc(){
+  const len=ctx.sampleRate*2,buf=ctx.createBuffer(1,len,ctx.sampleRate),d=buf.getChannelData(0);
+  for(let i=0;i<len;i++)d[i]=Math.random()*2-1;
+  const s=ctx.createBufferSource();s.buffer=buf;s.loop=true;return s;
+}
+const BUILD={
+  white(g){const s=noiseSrc();s.connect(g);s.start();return[s]},
+  rain(g){
+    const s=noiseSrc();
+    const lp=ctx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=1100;lp.Q.value=.4;
+    const hp=ctx.createBiquadFilter();hp.type='highpass';hp.frequency.value=300;
+    s.connect(hp);hp.connect(lp);lp.connect(g);s.start();return[s]},
+  waves(g){
+    const s=noiseSrc();
+    const lp=ctx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=480;lp.Q.value=.6;
+    const sw=ctx.createGain();sw.gain.value=.55;
+    const lfo=ctx.createOscillator();lfo.frequency.value=.07;
+    const depth=ctx.createGain();depth.gain.value=.42;
+    lfo.connect(depth);depth.connect(sw.gain);
+    s.connect(lp);lp.connect(sw);sw.connect(g);s.start();lfo.start();return[s,lfo]},
+  wind(g){
+    const s=noiseSrc();
+    const bp=ctx.createBiquadFilter();bp.type='bandpass';bp.frequency.value=340;bp.Q.value=1.1;
+    const lfo=ctx.createOscillator();lfo.frequency.value=.05;
+    const depth=ctx.createGain();depth.gain.value=160;
+    lfo.connect(depth);depth.connect(bp.frequency);
+    s.connect(bp);bp.connect(g);s.start();lfo.start();return[s,lfo]},
+};
+function toggle(name,card){
+  ensureCtx();
+  if(ctx.state==='suspended')ctx.resume();
+  if(tracks[name]){
+    tracks[name].nodes.forEach(n=>{try{n.stop()}catch(_){}});
+    tracks[name].gain.disconnect();
+    delete tracks[name];
+    card.classList.remove('on');
+    return;
+  }
+  const g=ctx.createGain();
+  const slider=document.querySelector(`[data-v="${name}"]`);
+  g.gain.value=0;
+  g.connect(master);
+  const nodes=BUILD[name](g);
+  g.gain.linearRampToValueAtTime(slider.value/100*.8,ctx.currentTime+.8);
+  tracks[name]={gain:g,nodes};
+  card.classList.add('on');
+}
+document.querySelectorAll('.card').forEach(card=>{
+  card.addEventListener('click',e=>{
+    if(e.target.tagName==='INPUT')return;
+    toggle(card.dataset.t,card);
+  });
+});
+document.querySelectorAll('[data-v]').forEach(s=>{
+  s.addEventListener('input',()=>{
+    const t=tracks[s.dataset.v];
+    if(t)t.gain.gain.setTargetAtTime(s.value/100*.8,ctx.currentTime,.1);
+  });
+});
+document.getElementById('mvol').addEventListener('input',e=>{
+  if(master)master.gain.setTargetAtTime(e.target.value/100*.9,ctx.currentTime,.1);
+});
+</script></body></html>

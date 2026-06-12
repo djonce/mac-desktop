@@ -1,0 +1,106 @@
+<!doctype html><html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>
+*{margin:0;box-sizing:border-box}
+html,body{height:100%;display:flex;flex-direction:column;background:#21232b;color:#dde1e8;font-family:-apple-system,'PingFang SC',sans-serif}
+#bar{display:flex;align-items:center;gap:12px;padding:9px 16px;border-bottom:1px solid rgba(255,255,255,.07);font-size:12.5px;color:#8a90a0}
+#bar b{color:#dde1e8;font-weight:600;font-size:13px}
+#count{margin-left:auto;font-variant-numeric:tabular-nums}
+#main{flex:1;display:flex;min-height:0}
+#src{flex:1;border:none;outline:none;resize:none;background:#1b1d24;color:#c9cedb;
+  padding:20px 22px;font:13.5px/1.75 "SF Mono",Menlo,Consolas,monospace}
+#prev{flex:1;overflow:auto;padding:22px 28px;border-left:1px solid rgba(255,255,255,.07);
+  font-size:15px;line-height:1.8}
+#prev h1{font-size:26px;margin:14px 0 12px;border-bottom:1px solid rgba(255,255,255,.12);padding-bottom:8px}
+#prev h2{font-size:21px;margin:18px 0 10px}
+#prev h3{font-size:17px;margin:14px 0 8px}
+#prev p{margin:0 0 12px}
+#prev a{color:#7fb3ff}
+#prev code{background:#31343f;border-radius:4px;padding:2px 6px;font:12.5px "SF Mono",Menlo,monospace;color:#ffd479}
+#prev pre{background:#15171d;border-radius:10px;padding:14px 16px;margin:0 0 14px;overflow:auto}
+#prev pre code{background:none;padding:0;color:#9fe3a1}
+#prev blockquote{border-left:3px solid #5a78c2;background:rgba(90,120,194,.1);
+  margin:0 0 12px;padding:8px 16px;border-radius:0 8px 8px 0;color:#aab2c4}
+#prev ul,#prev ol{margin:0 0 12px;padding-left:26px}
+#prev li{margin:3px 0}
+#prev hr{border:none;border-top:1px solid rgba(255,255,255,.14);margin:18px 0}
+#prev table{border-collapse:collapse;margin:0 0 14px}
+#prev td,#prev th{border:1px solid rgba(255,255,255,.15);padding:6px 12px;font-size:13.5px}
+#prev th{background:#2b2e3a}
+</style></head><body>
+<div id="bar"><b>Markdown</b><span>左侧编写 · 右侧实时预览</span><span id="count"></span></div>
+<div id="main"><textarea id="src" spellcheck="false"></textarea><div id="prev"></div></div>
+<script>
+const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+function inline(s){
+  return s
+    .replace(/`([^`]+)`/g,(_,c)=>'<code>'+c+'</code>')
+    .replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>')
+    .replace(/\*([^*]+)\*/g,'<i>$1</i>')
+    .replace(/~~([^~]+)~~/g,'<del>$1</del>')
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g,'<a href="$2" target="_blank" rel="noreferrer">$1</a>');
+}
+function md(src){
+  const lines=src.split('\n');let out='',i=0,para=[];
+  const flush=()=>{if(para.length){out+='<p>'+inline(para.join(' '))+'</p>';para=[]}};
+  while(i<lines.length){
+    let L=lines[i];
+    if(/^```/.test(L)){flush();let code=[];i++;
+      while(i<lines.length&&!/^```/.test(lines[i]))code.push(lines[i++]);
+      i++;out+='<pre><code>'+esc(code.join('\n'))+'</code></pre>';continue}
+    L=esc(L);
+    let m;
+    if(m=L.match(/^(#{1,3})\s+(.*)/)){flush();const n=m[1].length;out+=`<h${n}>`+inline(m[2])+`</h${n}>`;i++;continue}
+    if(/^(-{3,}|\*{3,})\s*$/.test(L)){flush();out+='<hr>';i++;continue}
+    if(/^&gt;\s?/.test(L)){flush();let q=[];
+      while(i<lines.length&&/^>\s?/.test(lines[i]))q.push(esc(lines[i++]).replace(/^&gt;\s?/,''));
+      out+='<blockquote>'+inline(q.join(' '))+'</blockquote>';continue}
+    if(/^[-*]\s+/.test(L)){flush();let li=[];
+      while(i<lines.length&&/^[-*]\s+/.test(lines[i]))li.push('<li>'+inline(esc(lines[i++]).replace(/^[-*]\s+/,''))+'</li>');
+      out+='<ul>'+li.join('')+'</ul>';continue}
+    if(/^\d+\.\s+/.test(L)){flush();let li=[];
+      while(i<lines.length&&/^\d+\.\s+/.test(lines[i]))li.push('<li>'+inline(esc(lines[i++]).replace(/^\d+\.\s+/,''))+'</li>');
+      out+='<ol>'+li.join('')+'</ol>';continue}
+    if(/^\s*$/.test(L)){flush();i++;continue}
+    para.push(L);i++;
+  }
+  flush();return out;
+}
+const src=document.getElementById('src'),prev=document.getElementById('prev');
+function render(){
+  prev.innerHTML=md(src.value);
+  document.getElementById('count').textContent=src.value.length+' 字符';
+}
+src.addEventListener('input',render);
+src.addEventListener('keydown',e=>{
+  if(e.key==='Tab'){e.preventDefault();
+    const s=src.selectionStart;
+    src.setRangeText('  ',s,src.selectionEnd,'end');render()}
+});
+src.value=`# Markdown 速记
+
+在左边输入,右边**实时**渲染。支持的语法:
+
+## 常用格式
+
+- **加粗**、*斜体*、~~删除线~~、\`行内代码\`
+- [链接](https://desktop.19ba.cn) 在新窗口打开
+- 列表(无序 / 有序)
+
+1. 第一步:写
+2. 第二步:看
+3. 第三步:改
+
+> 引用:好文章是改出来的。
+
+## 代码块
+
+\`\`\`
+function hello() {
+  console.log("Hello, macOS Web!");
+}
+\`\`\`
+
+---
+
+写完直接全选复制即可,本应用不保存内容。`;
+render();
+</script></body></html>

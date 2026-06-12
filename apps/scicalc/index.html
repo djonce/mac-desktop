@@ -1,0 +1,110 @@
+<!doctype html><html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>
+*{margin:0;box-sizing:border-box;user-select:none}
+html,body{height:100%;display:flex;flex-direction:column;background:#23252c;color:#eee;font-family:-apple-system,'PingFang SC',sans-serif}
+#hist{height:74px;overflow-y:auto;padding:8px 16px 0;font:12px "SF Mono",Menlo,monospace;color:#7e8492;display:flex;flex-direction:column-reverse}
+#hist div{cursor:pointer;padding:2px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#hist div:hover{color:#ffd479}
+#disp{padding:4px 18px 12px;text-align:right}
+#expr{font:15px "SF Mono",Menlo,monospace;color:#9aa1ad;min-height:20px;word-break:break-all}
+#res{font-size:40px;font-weight:200;min-height:50px;word-break:break-all;font-variant-numeric:tabular-nums}
+#pad{flex:1;display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:#181a1f;padding:1px}
+#pad button{border:none;background:#33363f;color:#eee;font-size:16px;cursor:pointer;font-family:inherit;min-height:44px}
+#pad button:active{filter:brightness(1.4)}
+#pad button.fn{background:#2a2d35;font-size:14px;color:#b8bfcc}
+#pad button.op{background:#404657;font-size:19px}
+#pad button.eq{background:#e08e3c;font-size:22px;grid-column:span 2}
+#pad button.deg.on{color:#ffd479}
+</style></head><body>
+<div id="hist"></div>
+<div id="disp"><div id="expr">&nbsp;</div><div id="res">0</div></div>
+<div id="pad"></div>
+<script>
+const KEYS=[
+  ['deg','sin','cos','tan','⌫'],
+  ['π','e','(',')','AC'],
+  ['x²','xʸ','√','ln','log'],
+  ['7','8','9','÷','%'],
+  ['4','5','6','×','1/x'],
+  ['1','2','3','−','±'],
+  ['0','.','+','=','='],
+];
+const pad=document.getElementById('pad');
+let html='';
+for(const row of KEYS)for(let i=0;i<row.length;i++){
+  const k=row[i];
+  if(k==='='&&row[i+1]==='='){html+=`<button class="eq" data-k="=">=</button>`;i++;continue}
+  const cls=/^[\d.]$/.test(k)?'':/[÷×−+]/.test(k)?'op':'fn'+(k==='deg'?' deg on':'');
+  html+=`<button class="${cls}" data-k="${k}">${k}</button>`;
+}
+pad.innerHTML=html;
+let expr='',deg=true,ans=0;
+const exprEl=document.getElementById('expr'),resEl=document.getElementById('res'),histEl=document.getElementById('hist');
+const D=Math.PI/180;
+const F={
+  S:x=>Math.sin(deg?x*D:x), C:x=>Math.cos(deg?x*D:x), T:x=>Math.tan(deg?x*D:x),
+  L:Math.log, G:Math.log10, Q:Math.sqrt,
+};
+function evaluate(src){
+  let s=src
+    .replace(/×/g,'*').replace(/÷/g,'/').replace(/−/g,'-')
+    .replace(/π/g,'(3.141592653589793)').replace(/(?<![a-zA-Z\d])e(?![a-zA-Z\d])/g,'(2.718281828459045)')
+    .replace(/(\d+(\.\d+)?)%/g,'($1/100)')
+    .replace(/sin\(/g,'F.S(').replace(/cos\(/g,'F.C(').replace(/tan\(/g,'F.T(')
+    .replace(/ln\(/g,'F.L(').replace(/log\(/g,'F.G(').replace(/√\(/g,'F.Q(').replace(/√(\d+(\.\d+)?)/g,'F.Q($1)')
+    .replace(/\^/g,'**').replace(/Ans/g,'('+ans+')');
+  if(/[^0-9+\-*/().,FSCTLGQ\s*]/.test(s.replace(/\*\*/g,'')))throw Error('bad');
+  const v=Function('F','"use strict";return ('+s+')')(F);
+  if(typeof v!=='number'||!isFinite(v))throw Error('math');
+  return v;
+}
+const fmt=v=>{
+  const s=''+ +v.toPrecision(12);
+  return s.length>16?v.toExponential(8):s;
+};
+function show(){
+  exprEl.innerHTML=expr||'&nbsp;';
+  try{resEl.textContent=expr?fmt(evaluate(expr)):'0';resEl.style.color=''}
+  catch(_){resEl.textContent='…';resEl.style.color='#7e8492'}
+}
+function press(k){
+  if(k==='AC'){expr='';show();return}
+  if(k==='⌫'){
+    for(const t of['sin(','cos(','tan(','ln(','log(','Ans'])
+      if(expr.endsWith(t)){expr=expr.slice(0,-t.length);show();return}
+    expr=expr.slice(0,-1);show();return}
+  if(k==='deg'){deg=!deg;
+    const b=pad.querySelector('[data-k=deg]');
+    b.textContent=deg?'deg':'rad';b.classList.toggle('on',deg);show();return}
+  if(k==='='){
+    try{
+      const v=evaluate(expr);
+      const line=expr+' = '+fmt(v);
+      const d=document.createElement('div');d.textContent=line;d.dataset.v=fmt(v);
+      histEl.prepend(d);ans=v;expr=fmt(v);show();
+    }catch(_){resEl.textContent='错误';resEl.style.color='#ff7468'}
+    return}
+  if(k==='±'){
+    expr=expr&&!/[+\-×÷(]$/.test(expr)?'-('+expr+')':expr+'-';show();return}
+  if(k==='x²'){expr+='^2';show();return}
+  if(k==='xʸ'){expr+='^';show();return}
+  if(k==='1/x'){expr='1/('+(expr||'1')+')';show();return}
+  if(k==='√'){expr+='√(';show();return}
+  if(/^(sin|cos|tan|ln|log)$/.test(k)){expr+=k+'(';show();return}
+  expr+=k;show();
+}
+pad.addEventListener('click',e=>{const b=e.target.closest('button');if(b)press(b.dataset.k)});
+histEl.addEventListener('click',e=>{const d=e.target.closest('div');if(d&&d.dataset.v){expr+=d.dataset.v;show()}});
+addEventListener('keydown',e=>{
+  const k=e.key;
+  if(/^[\d.]$/.test(k))press(k);
+  else if(k==='+')press('+');else if(k==='-')press('−');
+  else if(k==='*')press('×');else if(k==='/')press('÷');
+  else if(k==='('||k===')')press(k);
+  else if(k==='Enter'||k==='=')press('=');
+  else if(k==='Backspace')press('⌫');
+  else if(k==='Escape')press('AC');
+  else return;
+  e.preventDefault();
+});
+show();
+</script></body></html>

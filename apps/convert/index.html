@@ -1,0 +1,89 @@
+<!doctype html><html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>
+*{margin:0;box-sizing:border-box}
+html,body{height:100%;display:flex;flex-direction:column;background:#22242c;color:#dde1e8;font-family:-apple-system,'PingFang SC',sans-serif}
+#tabs{display:flex;gap:4px;padding:14px 16px 0;flex-wrap:wrap}
+#tabs button{border:none;background:#2c2f3a;color:#9aa1ad;padding:7px 15px;border-radius:9px 9px 0 0;font-size:13px;cursor:pointer}
+#tabs button.on{background:#3a4257;color:#fff}
+#panel{flex:1;margin:0 16px 16px;background:#2a2d38;border-radius:0 12px 12px 12px;padding:26px 24px;display:flex;flex-direction:column;gap:14px}
+.row{display:flex;gap:10px}
+.row select{flex:1;background:#1f222b;border:1px solid rgba(255,255,255,.1);color:#dde1e8;
+  border-radius:9px;padding:10px 12px;font-size:14px;outline:none;cursor:pointer}
+.row input{flex:1.4;background:#1f222b;border:1px solid rgba(255,255,255,.1);color:#fff;
+  border-radius:9px;padding:10px 14px;font-size:19px;outline:none;font-variant-numeric:tabular-nums}
+.row input:focus{border-color:#5a8de0}
+#swap{align-self:center;border:none;background:#3a4257;color:#cfd6e4;width:38px;height:38px;
+  border-radius:50%;font-size:17px;cursor:pointer;transition:transform .25s}
+#swap:hover{transform:rotate(180deg)}
+#quick{font-size:12.5px;color:#7a8090;line-height:2;margin-top:6px}
+#quick b{color:#aab2c4;font-weight:600}
+</style></head><body>
+<div id="tabs"></div>
+<div id="panel">
+  <div class="row"><select id="uFrom"></select><input id="vFrom" value="1"></div>
+  <button id="swap" title="交换">⇅</button>
+  <div class="row"><select id="uTo"></select><input id="vTo"></div>
+  <div id="quick"></div>
+</div>
+<script>
+const CATS={
+  '长度':{base:'米',u:{'公里':1000,'米':1,'分米':.1,'厘米':.01,'毫米':.001,'英里':1609.344,'英尺':.3048,'英寸':.0254,'海里':1852}},
+  '重量':{base:'千克',u:{'吨':1000,'千克':1,'克':.001,'毫克':1e-6,'斤':.5,'两':.05,'磅':.45359237,'盎司':.028349523}},
+  '温度':{temp:true,u:{'摄氏度 ℃':1,'华氏度 ℉':1,'开尔文 K':1}},
+  '面积':{base:'平方米',u:{'平方公里':1e6,'公顷':1e4,'亩':2000/3,'平方米':1,'平方分米':.01,'平方英尺':.09290304}},
+  '速度':{base:'米/秒',u:{'米/秒':1,'公里/小时':1/3.6,'英里/小时':.44704,'节':.514444,'马赫':340.3}},
+  '数据':{base:'字节',u:{'比特 bit':.125,'字节 B':1,'KB':1024,'MB':1048576,'GB':1073741824,'TB':1099511627776}},
+  '时间':{base:'秒',u:{'年':31536000,'周':604800,'天':86400,'小时':3600,'分钟':60,'秒':1,'毫秒':.001}},
+};
+let cat='长度';
+const $=id=>document.getElementById(id);
+function buildTabs(){
+  $('tabs').innerHTML=Object.keys(CATS).map(c=>`<button class="${c===cat?'on':''}" data-c="${c}">${c}</button>`).join('');
+}
+function buildUnits(){
+  const us=Object.keys(CATS[cat].u);
+  const opt=us.map(u=>`<option>${u}</option>`).join('');
+  $('uFrom').innerHTML=opt;$('uTo').innerHTML=opt;
+  $('uFrom').selectedIndex=0;$('uTo').selectedIndex=Math.min(1,us.length-1);
+}
+function toC(v,u){return u.startsWith('华氏')?(v-32)*5/9:u.startsWith('开')?v-273.15:v}
+function fromC(c,u){return u.startsWith('华氏')?c*9/5+32:u.startsWith('开')?c+273.15:c}
+function convert(v,from,to){
+  const C=CATS[cat];
+  if(C.temp)return fromC(toC(v,from),to);
+  return v*C.u[from]/C.u[to];
+}
+const fmt=n=>{
+  if(!isFinite(n))return'—';
+  const a=Math.abs(n);
+  if(a!==0&&(a>=1e12||a<1e-6))return n.toExponential(5);
+  return +n.toPrecision(10)+'';
+};
+function calc(dir){
+  const f=$('uFrom').value,t=$('uTo').value;
+  if(dir==='to'){
+    const v=parseFloat($('vTo').value);
+    $('vFrom').value=isNaN(v)?'':fmt(convert(v,t,f));
+  }else{
+    const v=parseFloat($('vFrom').value);
+    $('vTo').value=isNaN(v)?'':fmt(convert(v,f,t));
+  }
+  quick();
+}
+function quick(){
+  const f=$('uFrom').value,t=$('uTo').value;
+  $('quick').innerHTML=[1,5,10,100].map(v=>`<b>${v}</b> ${f} = <b>${fmt(convert(v,f,t))}</b> ${t}`).join('<br>');
+}
+$('tabs').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  cat=b.dataset.c;buildTabs();buildUnits();$('vFrom').value=1;calc('from');
+});
+$('uFrom').addEventListener('change',()=>calc('from'));
+$('uTo').addEventListener('change',()=>calc('from'));
+$('vFrom').addEventListener('input',()=>calc('from'));
+$('vTo').addEventListener('input',()=>calc('to'));
+$('swap').addEventListener('click',()=>{
+  const i=$('uFrom').selectedIndex;$('uFrom').selectedIndex=$('uTo').selectedIndex;$('uTo').selectedIndex=i;
+  calc('from');
+});
+buildTabs();buildUnits();calc('from');
+</script></body></html>

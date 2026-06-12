@@ -1,0 +1,115 @@
+<!doctype html><html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>
+*{margin:0;box-sizing:border-box;user-select:none}
+html,body{height:100%;display:flex;flex-direction:column;align-items:center;background:#23262e;color:#dfe3ea;font-family:-apple-system,'PingFang SC',sans-serif}
+#top{display:flex;align-items:center;gap:10px;padding:12px 0}
+.seg{display:flex;background:#31353f;border-radius:8px;padding:3px;gap:3px}
+.seg button{border:none;background:none;color:#9aa1ad;padding:5px 12px;border-radius:6px;font-size:13px;cursor:pointer}
+.seg button.on{background:#4a5060;color:#fff}
+#flagBtn{border:none;background:#31353f;color:#9aa1ad;padding:6px 13px;border-radius:8px;cursor:pointer;font-size:13px}
+#flagBtn.on{background:#c2563c;color:#fff}
+#hud{display:flex;gap:18px;font-size:14px;font-variant-numeric:tabular-nums;margin-bottom:10px;align-items:center}
+#face{font-size:22px;cursor:pointer;background:none;border:none}
+#board{display:grid;gap:3px;background:#1b1d23;padding:8px;border-radius:10px;box-shadow:0 14px 40px rgba(0,0,0,.45)}
+.cell{width:28px;height:28px;border-radius:5px;border:none;cursor:pointer;
+  background:linear-gradient(180deg,#4d5466,#3c4252);font-size:14px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;color:transparent;font-family:inherit}
+.cell:hover{filter:brightness(1.15)}
+.cell.open{background:#262932;cursor:default;color:inherit}
+.cell.boom{background:#b33a2c}
+.c1{color:#6fa8ff}.c2{color:#5fd068}.c3{color:#ff6b5e}.c4{color:#b48cff}
+.c5{color:#e0a04f}.c6{color:#4fd0c5}.c7{color:#e8e8e8}.c8{color:#999}
+#msg{height:22px;margin-top:10px;font-size:14px;color:#ffd479}
+</style></head><body>
+<div id="top">
+  <div class="seg"><button data-d="0" class="on">初级 9×9</button><button data-d="1">中级 16×16</button></div>
+  <button id="flagBtn">🚩 旗标模式</button>
+</div>
+<div id="hud"><span>💣 <b id="left">10</b></span><button id="face">🙂</button><span>⏱ <b id="time">0</b>s</span></div>
+<div id="board"></div>
+<div id="msg">左键翻开 · 右键(或旗标模式)插旗</div>
+<script>
+const DIFF=[{n:9,m:10},{n:16,m:40}];
+let lv=0,N,MINES,grid,opened,flagged,started,dead,won,timer,sec=0,flagMode=false;
+const board=document.getElementById('board');
+
+function reset(){
+  ({n:N,m:MINES}=DIFF[lv]);
+  grid=Array.from({length:N},()=>Array(N).fill(0));
+  opened=Array.from({length:N},()=>Array(N).fill(false));
+  flagged=Array.from({length:N},()=>Array(N).fill(false));
+  started=dead=won=false;sec=0;clearInterval(timer);
+  document.getElementById('time').textContent='0';
+  document.getElementById('left').textContent=MINES;
+  document.getElementById('face').textContent='🙂';
+  document.getElementById('msg').textContent='左键翻开 · 右键(或旗标模式)插旗';
+  board.style.gridTemplateColumns=`repeat(${N},28px)`;
+  board.innerHTML=Array.from({length:N*N},(_,i)=>`<button class="cell" data-i="${i}"></button>`).join('');
+}
+function plant(sx,sy){
+  let placed=0;
+  while(placed<MINES){
+    const x=Math.random()*N|0,y=Math.random()*N|0;
+    if(grid[y][x]===9||(Math.abs(x-sx)<=1&&Math.abs(y-sy)<=1))continue;
+    grid[y][x]=9;placed++;
+  }
+  for(let y=0;y<N;y++)for(let x=0;x<N;x++){
+    if(grid[y][x]===9)continue;
+    let c=0;nb(x,y,(a,b)=>{if(grid[b][a]===9)c++});
+    grid[y][x]=c;
+  }
+  timer=setInterval(()=>{document.getElementById('time').textContent=++sec},1000);
+}
+function nb(x,y,f){for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
+  if(!dx&&!dy)continue;const a=x+dx,b=y+dy;if(a>=0&&b>=0&&a<N&&b<N)f(a,b)}}
+const el=(x,y)=>board.children[y*N+x];
+
+function open(x,y){
+  if(opened[y][x]||flagged[y][x]||dead)return;
+  if(!started){started=true;plant(x,y)}
+  opened[y][x]=true;
+  const e=el(x,y);e.classList.add('open');
+  if(grid[y][x]===9){e.textContent='💣';e.classList.add('boom');return lose()}
+  if(grid[y][x]>0){e.textContent=grid[y][x];e.classList.add('c'+grid[y][x])}
+  else nb(x,y,open);
+  checkWin();
+}
+function toggleFlag(x,y){
+  if(opened[y][x]||dead)return;
+  flagged[y][x]=!flagged[y][x];
+  el(x,y).textContent=flagged[y][x]?'🚩':'';
+  el(x,y).style.color=flagged[y][x]?'#fff':'';
+  let used=0;for(const r of flagged)for(const v of r)if(v)used++;
+  document.getElementById('left').textContent=MINES-used;
+}
+function lose(){
+  dead=true;clearInterval(timer);
+  document.getElementById('face').textContent='😵';
+  document.getElementById('msg').textContent='踩雷了!点表情重来';
+  for(let y=0;y<N;y++)for(let x=0;x<N;x++)
+    if(grid[y][x]===9&&!flagged[y][x]){const e=el(x,y);e.classList.add('open');e.textContent='💣'}
+}
+function checkWin(){
+  let n=0;for(const r of opened)for(const v of r)if(v)n++;
+  if(n===N*N-MINES){won=dead=true;clearInterval(timer);
+    document.getElementById('face').textContent='😎';
+    document.getElementById('msg').textContent=`🎉 扫雷成功!用时 ${sec} 秒`;
+  }
+}
+board.addEventListener('click',e=>{
+  const c=e.target.closest('.cell');if(!c)return;
+  const i=+c.dataset.i,x=i%N,y=i/N|0;
+  flagMode?toggleFlag(x,y):open(x,y);
+});
+board.addEventListener('contextmenu',e=>{
+  e.preventDefault();
+  const c=e.target.closest('.cell');if(!c)return;
+  const i=+c.dataset.i;toggleFlag(i%N,i/N|0);
+});
+document.getElementById('face').addEventListener('click',reset);
+document.getElementById('flagBtn').addEventListener('click',function(){flagMode=!flagMode;this.classList.toggle('on',flagMode)});
+document.querySelectorAll('.seg button').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('.seg button').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on');lv=+b.dataset.d;reset();
+}));
+reset();
+</script></body></html>

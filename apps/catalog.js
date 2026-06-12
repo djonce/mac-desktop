@@ -40,6 +40,56 @@ window.StoreCatalog = [
     author: 'FocusLab', ver: '1.1.0', size: '0.4 MB', rating: '4.4', dl: '8.9万',
     type: 'page', source: 'apps/watch/index.html', w: 380, h: 460 },
 
+  { id: 'gomoku', name: '五子棋', icon: '⚫', bg: 'linear-gradient(180deg,#e2b06a,#a8732f)', cat: '游戏',
+    desc: '人机对战,AI 不好惹', long: '木纹棋盘上的经典五子棋:支持人机对战(启发式 AI,会堵你的活三冲四)与本地双人对战,带悔棋和胜局高亮。执黑先行,祝你好运。',
+    author: 'Pixel 工作室', ver: '1.0.0', size: '0.8 MB', rating: '4.7', dl: '5.2万',
+    type: 'page', source: 'apps/gomoku/index.html', w: 520, h: 620 },
+
+  { id: 'mines', name: '扫雷', icon: '💣', bg: 'linear-gradient(180deg,#5b6478,#343b4a)', cat: '游戏',
+    desc: '经典扫雷,初级中级', long: '原汁原味的扫雷:初级 9×9 / 中级 16×16,首点必不踩雷,右键插旗(触控板可开旗标模式),计时挑战你的最快纪录。',
+    author: 'Pixel 工作室', ver: '1.2.0', size: '0.6 MB', rating: '4.6', dl: '11.8万',
+    type: 'page', source: 'apps/mines/index.html', w: 460, h: 580 },
+
+  { id: 'klotski', name: '华容道', icon: '🏯', bg: 'linear-gradient(180deg,#b85843,#7c3325)', cat: '游戏',
+    desc: '送曹操逃出生天', long: '中国古典滑块谜题,经典「横刀立马」开局:拖动滑块腾挪空间,把曹操送到底部出口。理论最少 81 步,你能用几步?',
+    author: 'BrainLab', ver: '1.0.0', size: '0.5 MB', rating: '4.8', dl: '3.4万',
+    type: 'page', source: 'apps/klotski/index.html', w: 460, h: 620 },
+
+  { id: 'typing', name: '打字测速', icon: '⌨️', bg: 'linear-gradient(180deg,#6b7ce0,#3d4cb0)', cat: '效率',
+    desc: '60 秒测出你的手速', long: '中英文双语打字测试:实时逐字着色反馈,统计字符/分钟、准确率与错字数。计时从第一个字符开始,60 秒或完成全文结束。',
+    author: 'FocusLab', ver: '1.0.0', size: '0.5 MB', rating: '4.5', dl: '6.9万',
+    type: 'page', source: 'apps/typing/index.html', w: 660, h: 500 },
+
+  { id: 'markdown', name: 'Markdown', icon: '✍️', bg: 'linear-gradient(180deg,#4a5266,#2c313e)', cat: '效率',
+    desc: '左手写作,右手预览', long: '极简 Markdown 编辑器:左侧编写、右侧实时渲染,支持标题、加粗斜体、列表、引用、代码块、链接与分割线,Tab 键缩进。',
+    author: 'Zebo', ver: '1.1.0', size: '0.6 MB', rating: '4.6', dl: '4.7万',
+    type: 'page', source: 'apps/markdown/index.html', w: 840, h: 560 },
+
+  { id: 'noise', name: '白噪音', icon: '🎧', bg: 'linear-gradient(180deg,#4d8d9c,#2c5d6e)', cat: '效率',
+    desc: '雨声海浪,专注入眠', long: '纯 Web Audio 实时合成的环境音:雨声、海浪、风声、白噪,四轨可叠加混音、独立调音量。没有任何音频文件,全靠数学。',
+    author: 'FocusLab', ver: '2.0.0', size: '0.3 MB', rating: '4.8', dl: '15.6万',
+    type: 'page', source: 'apps/noise/index.html', w: 420, h: 500 },
+
+  { id: 'scicalc', name: '科学计算器', icon: '🧮', bg: 'linear-gradient(180deg,#3a3f4d,#22252e)', cat: '工具',
+    desc: '三角对数,角度弧度', long: '全功能科学计算器:三角函数(deg/rad 切换)、对数、幂与开方、π/e 常量、百分号与倒数,带可点击的历史记录,支持键盘输入。',
+    author: 'Zebo', ver: '1.0.0', size: '0.4 MB', rating: '4.7', dl: '9.3万',
+    type: 'page', source: 'apps/scicalc/index.html', w: 380, h: 560 },
+
+  { id: 'jsonfmt', name: 'JSON 工具', icon: '{ }', bg: 'linear-gradient(180deg,#3f8f6a,#22593f)', cat: '工具',
+    desc: '格式化 · 校验 · 排序', long: '开发者的 JSON 瑞士军刀:格式化、压缩、键排序,语法高亮,出错时精确定位到行列并展示出错上下文,顺手统计键数与深度。',
+    author: 'Zebo', ver: '1.0.0', size: '0.4 MB', rating: '4.9', dl: '8.1万',
+    type: 'page', source: 'apps/jsonfmt/index.html', w: 720, h: 520 },
+
+  { id: 'colors', name: '调色盘', icon: '🌈', bg: 'linear-gradient(180deg,#e07ab8,#8d4ad0)', cat: '工具',
+    desc: '取色配色,一键复制', long: '设计师的小工具:HEX / RGB / HSL 实时互转与复制,自动生成九级明暗阶和互补、分裂互补、三元、类似四套配色方案,点任意色块即可继续探索。',
+    author: 'Zebo', ver: '1.0.0', size: '0.4 MB', rating: '4.6', dl: '5.5万',
+    type: 'page', source: 'apps/colors/index.html', w: 560, h: 540 },
+
+  { id: 'convert', name: '单位换算', icon: '⇄', bg: 'linear-gradient(180deg,#e0a04f,#b06a1f)', cat: '工具',
+    desc: '七类单位,双向换算', long: '长度、重量、温度、面积、速度、数据、时间七大类单位双向实时换算,附常用数值速查表。支持斤两、亩、节、马赫这些教科书之外的老朋友。',
+    author: 'Zebo', ver: '1.0.0', size: '0.3 MB', rating: '4.5', dl: '7.2万',
+    type: 'page', source: 'apps/convert/index.html', w: 520, h: 500 },
+
   { id: 'osm', name: '世界地图', icon: '🗺️', bg: 'linear-gradient(180deg,#9be39b,#2f9e6e)', cat: '工具',
     desc: 'OpenStreetMap 在线地图', long: '基于 OpenStreetMap 的在线地图(URL 应用示例)。需要联网,数据来自 openstreetmap.org。',
     author: 'OSM 社区', ver: '—', size: '在线', rating: '4.7', dl: '9.6万',
