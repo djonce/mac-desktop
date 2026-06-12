@@ -76,8 +76,8 @@ window.StoreCatalog = [
     type: 'page', source: 'apps/scicalc/index.html', w: 380, h: 560 },
 
   { id: 'jsonfmt', name: 'JSON 工具', icon: '{ }', bg: 'linear-gradient(180deg,#3f8f6a,#22593f)', cat: '工具',
-    desc: '格式化 · 校验 · 排序', long: '开发者的 JSON 瑞士军刀:格式化、压缩、键排序,语法高亮,出错时精确定位到行列并展示出错上下文,顺手统计键数与深度。',
-    author: 'Zebo', ver: '1.0.0', size: '0.4 MB', rating: '4.9', dl: '8.1万',
+    desc: '格式化 · 树视图 · 路径查询', long: '开发者的 JSON 瑞士军刀:格式化 / 压缩 / 键排序、语法高亮、可折叠树视图、JSONPath 路径查询(如 $.stats.stars)。独有宽松解析,自动容错注释、单引号、尾逗号、无引号键与 Python 字面量;带行号的编辑器会高亮出错行并定位到列,还能一键转义 / 还原字符串。',
+    author: 'Zebo', ver: '1.1.0', size: '0.4 MB', rating: '4.9', dl: '8.1万',
     type: 'page', source: 'apps/jsonfmt/index.html', w: 720, h: 520 },
 
   { id: 'colors', name: '调色盘', icon: '🌈', bg: 'linear-gradient(180deg,#e07ab8,#8d4ad0)', cat: '工具',

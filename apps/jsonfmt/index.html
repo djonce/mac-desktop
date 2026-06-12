@@ -1,87 +1,281 @@
 <!doctype html><html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>
 *{margin:0;box-sizing:border-box}
-html,body{height:100%;display:flex;flex-direction:column;background:#1e2128;color:#dde1e8;font-family:-apple-system,'PingFang SC',sans-serif}
-#bar{display:flex;align-items:center;gap:8px;padding:9px 14px;border-bottom:1px solid rgba(255,255,255,.07)}
-#bar b{font-size:13px;margin-right:6px}
-#bar button{border:none;background:#2e323e;color:#aeb4c2;padding:6px 14px;border-radius:7px;font-size:12.5px;cursor:pointer}
-#bar button:hover{background:#3a3f4e;color:#fff}
-#bar button.pri{background:#3866c2;color:#fff}
-#stat{margin-left:auto;font-size:12px;color:#7a8090;font-variant-numeric:tabular-nums}
+html,body{height:100%;display:flex;flex-direction:column;background:#1e2128;color:#dde1e8;font-family:-apple-system,'PingFang SC',sans-serif;overflow:hidden}
+.bar{display:flex;align-items:center;gap:7px;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.07);flex-wrap:wrap}
+.bar b.logo{font:600 13px "SF Mono",Menlo,monospace;color:#7fb3ff;margin-right:4px}
+.bar button{border:none;background:#2e323e;color:#aeb4c2;padding:6px 12px;border-radius:7px;font-size:12.5px;cursor:pointer;white-space:nowrap}
+.bar button:hover{background:#3a3f4e;color:#fff}
+.bar button.pri{background:#3866c2;color:#fff}
+.bar button.pri:hover{background:#4674d8}
+.seg{display:flex;background:#23262f;border-radius:7px;padding:2px;gap:2px}
+.seg button{padding:5px 11px;font-size:12px;background:none;border-radius:5px}
+.seg button.on{background:#46506b;color:#fff}
+#stat{margin-left:auto;font-size:11.5px;color:#7a8090;font-variant-numeric:tabular-nums;cursor:default}
+#path{flex:1;min-width:120px;background:#181a20;border:1px solid rgba(255,255,255,.1);border-radius:7px;
+  color:#dde1e8;padding:6px 11px;font:12.5px "SF Mono",Menlo,monospace;outline:none}
+#path:focus{border-color:#5a8de0}
+#path.bad{border-color:#d2563c}
 #main{flex:1;display:flex;min-height:0}
-#in{flex:1;border:none;outline:none;resize:none;background:#181a20;color:#c9cedb;
-  padding:16px 18px;font:13px/1.7 "SF Mono",Menlo,Consolas,monospace}
-#out{flex:1;overflow:auto;padding:16px 18px;border-left:1px solid rgba(255,255,255,.07);
-  font:13px/1.7 "SF Mono",Menlo,Consolas,monospace;white-space:pre;user-select:text}
-.k{color:#7fb3ff}.s{color:#9fe3a1}.n{color:#ffd479}.b{color:#e08fff}.e{color:#ff7468}
-#err{display:none;margin:0 14px 12px;padding:10px 14px;background:rgba(255,90,70,.12);
-  border:1px solid rgba(255,90,70,.3);border-radius:9px;font-size:12.5px;color:#ff9a90;white-space:pre-wrap;font-family:"SF Mono",Menlo,monospace}
+#editor{flex:1;display:flex;background:#181a20;min-width:0}
+#gutter{padding:14px 8px 14px 12px;text-align:right;color:#4a4f5c;user-select:none;
+  font:13px/1.7 "SF Mono",Menlo,Consolas,monospace;overflow:hidden;white-space:pre}
+#gutter .eln{color:#ff7468;font-weight:700}
+#in{flex:1;border:none;outline:none;resize:none;background:none;color:#c9cedb;
+  padding:14px 14px 14px 4px;font:13px/1.7 "SF Mono",Menlo,Consolas,monospace;min-width:0}
+#outwrap{flex:1;overflow:auto;border-left:1px solid rgba(255,255,255,.07);min-width:0}
+#out{padding:14px 16px;font:13px/1.7 "SF Mono",Menlo,Consolas,monospace;white-space:pre;user-select:text}
+.k{color:#7fb3ff}.s{color:#9fe3a1}.n{color:#ffd479}.b{color:#e08fff}.nul{color:#8a90a0}.e{color:#ff7468}
+/* 树视图 */
+#tree{padding:12px 14px;font:13px/1.6 "SF Mono",Menlo,Consolas,monospace}
+.tnode{padding-left:15px;position:relative}
+.trow{display:flex;align-items:flex-start;gap:5px;border-radius:4px;padding:1px 4px;cursor:default}
+.trow:hover{background:rgba(127,160,255,.12)}
+.tw{position:absolute;left:1px;width:12px;color:#6b7180;cursor:pointer;user-select:none;font-size:11px;top:2px}
+.tk{color:#7fb3ff}.tcol{color:#6b7180}
+.tmeta{color:#6b7180;font-style:italic}
+.collapsed>.tchildren{display:none}
+.collapsed>.trow .tprev{display:inline}
+.tprev{display:none;color:#6b7180;font-style:italic}
+#banner{display:none;margin:0;padding:7px 14px;font-size:12px;background:rgba(95,140,235,.14);color:#9fc0ff;border-bottom:1px solid rgba(127,160,255,.25)}
+#banner b{color:#cfe0ff}
+#err{display:none;margin:0;padding:9px 14px;background:rgba(255,90,70,.12);border-top:1px solid rgba(255,90,70,.3);
+  font-size:12.5px;color:#ff9a90;white-space:pre-wrap;font-family:"SF Mono",Menlo,monospace}
+#toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%) translateY(60px);
+  background:#3866c2;color:#fff;padding:7px 18px;border-radius:9px;font-size:12.5px;transition:transform .3s;pointer-events:none;z-index:9}
+#toast.show{transform:translateX(-50%) translateY(0)}
 </style></head><body>
-<div id="bar">
-  <b>JSON 工具</b>
+<div class="bar">
+  <b class="logo">{ } JSON</b>
   <button class="pri" id="fmt">格式化</button>
   <button id="min">压缩</button>
+  <button id="indent">缩进 2</button>
   <button id="sort">键排序</button>
+  <button id="esc">转义</button>
+  <button id="unesc">还原</button>
+  <button id="copy">复制</button>
   <button id="clr">清空</button>
+</div>
+<div class="bar" style="border-bottom:1px solid rgba(255,255,255,.07)">
+  <div class="seg"><button data-view="text" class="on">文本</button><button data-view="tree">树</button></div>
+  <input id="path" spellcheck="false" placeholder="JSONPath 查询,如  $.stats.stars  或  apps[0]">
   <span id="stat"></span>
 </div>
-<div id="main"><textarea id="in" spellcheck="false" placeholder="粘贴 JSON 到这里…"></textarea><div id="out"></div></div>
+<div id="banner"></div>
+<div id="main">
+  <div id="editor"><div id="gutter">1</div><textarea id="in" spellcheck="false" placeholder="粘贴 JSON…(支持注释、单引号、尾逗号等宽松写法)"></textarea></div>
+  <div id="outwrap"><div id="out"></div><div id="tree" style="display:none"></div></div>
+</div>
 <div id="err"></div>
+<div id="toast">已复制</div>
 <script>
-const inp=document.getElementById('in'),out=document.getElementById('out'),err=document.getElementById('err');
+const $=id=>document.getElementById(id);
+const inp=$('in'),out=$('out'),treeEl=$('tree'),err=$('err'),banner=$('banner'),gutter=$('gutter');
+let indent=2,view='text',curObj=null,errLine=-1;
+
+/* ---------- 宽松解析:容错后转标准 JSON ---------- */
+function relax(src){
+  let o='',i=0,n=src.length;
+  while(i<n){
+    const c=src[i];
+    if(c==='/'&&src[i+1]==='/'){while(i<n&&src[i]!=='\n')i++;continue}
+    if(c==='/'&&src[i+1]==='*'){i+=2;while(i<n&&!(src[i]==='*'&&src[i+1]==='/'))i++;i+=2;continue}
+    if(c==='"'||c==="'"){
+      const q=c;o+='"';i++;
+      while(i<n&&src[i]!==q){
+        if(src[i]==='\\'){o+=src[i]+(src[i+1]||'');i+=2;continue}
+        if(src[i]==='"'&&q==="'")o+='\\"';
+        else if(src[i]==='\n')o+='\\n';
+        else o+=src[i];
+        i++;
+      }
+      o+='"';i++;continue;
+    }
+    o+=c;i++;
+  }
+  return o
+    .replace(/,(\s*[}\]])/g,'$1')
+    .replace(/([{,]\s*)([A-Za-z_$][\w$]*)(\s*:)/g,'$1"$2"$3')
+    .replace(/\bTrue\b/g,'true').replace(/\bFalse\b/g,'false')
+    .replace(/\bNone\b/g,'null').replace(/\bNaN\b/g,'null').replace(/\bundefined\b/g,'null');
+}
+function parseInput(){
+  const v=inp.value.trim();
+  banner.style.display='none';
+  if(!v){curObj=undefined;return {empty:true}}
+  try{curObj=JSON.parse(v);return {ok:true}}
+  catch(e1){
+    try{
+      curObj=JSON.parse(relax(v));
+      banner.innerHTML='⚠︎ 输入不是严格 JSON,已按<b>宽松模式</b>容错解析(注释 / 单引号 / 尾逗号 / 无引号键 / Python 字面量)。点「格式化」可得标准 JSON。';
+      banner.style.display='block';
+      return {ok:true,loose:true};
+    }catch(e2){return {err:e1}}
+  }
+}
+
+/* ---------- 高亮 ---------- */
 function hl(json){
-  return json.replace(/("(\\u[a-fA-F\d]{4}|\\[^u]|[^\\"])*")(\s*:)?|\b(true|false|null)\b|-?\d+(\.\d+)?([eE][+-]?\d+)?/g,m=>{
+  return json.replace(/("(\\u[a-fA-F\d]{4}|\\[^u]|[^\\"])*")(\s*:)?|\b(true|false)\b|\bnull\b|-?\d+(\.\d+)?([eE][+-]?\d+)?/g,m=>{
     let cls='n';
-    if(/^"/.test(m))cls=/:$/.test(m)?'k':'s';
-    else if(/true|false|null/.test(m))cls='b';
-    return `<span class="${cls}">${m.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</span>`;
+    if(/^"/.test(m))cls=/:\s*$/.test(m)?'k':'s';
+    else if(m==='null')cls='nul';
+    else if(m==='true'||m==='false')cls='b';
+    return '<span class="'+cls+'">'+m.replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</span>';
   });
 }
-function stats(o,t){
-  let keys=0,depth=0;
-  (function walk(v,d){
+
+/* ---------- 统计 ---------- */
+function stats(o){
+  const c={obj:0,arr:0,str:0,num:0,bool:0,nul:0,keys:0};let depth=0;
+  (function w(v,d){
     depth=Math.max(depth,d);
-    if(Array.isArray(v))v.forEach(x=>walk(x,d+1));
-    else if(v&&typeof v==='object'){const ks=Object.keys(v);keys+=ks.length;ks.forEach(k=>walk(v[k],d+1))}
-  })(o,1);
-  document.getElementById('stat').textContent=`${keys} 键 · 深度 ${depth} · ${new Blob([t]).size} B`;
+    if(Array.isArray(v)){c.arr++;v.forEach(x=>w(x,d+1))}
+    else if(v===null)c.nul++;
+    else if(typeof v==='object'){c.obj++;const ks=Object.keys(v);c.keys+=ks.length;ks.forEach(k=>w(v[k],d+1))}
+    else if(typeof v==='string')c.str++;
+    else if(typeof v==='number')c.num++;
+    else if(typeof v==='boolean')c.bool++;
+  })(o,0);
+  const bytes=new Blob([inp.value]).size;
+  $('stat').textContent=c.keys+' 键 · 深度 '+depth+' · '+fmtBytes(bytes);
+  $('stat').title='对象 '+c.obj+' · 数组 '+c.arr+' · 字符串 '+c.str+' · 数字 '+c.num+' · 布尔 '+c.bool+' · null '+c.nul;
 }
-function show(text,obj){
-  out.innerHTML=hl(text);err.style.display='none';stats(obj,text);
+const fmtBytes=b=>b<1024?b+' B':(b/1024).toFixed(1)+' KB';
+
+/* ---------- JSONPath ---------- */
+function getByPath(obj,path){
+  const p=path.trim().replace(/^\$/,'').replace(/\[(\d+)\]/g,'.$1').replace(/^\.+/,'');
+  if(!p)return {v:obj};
+  let cur=obj;
+  for(const seg of p.split('.')){
+    if(seg==='')continue;
+    if(cur==null||typeof cur!=='object')return {err:true};
+    if(!(seg in cur))return {err:true};
+    cur=cur[seg];
+  }
+  return {v:cur};
+}
+
+/* ---------- 树视图 ---------- */
+function buildTree(obj){
+  treeEl.innerHTML='';
+  treeEl.appendChild(node(obj,'',-1,'$'));
+}
+function node(val,key,idx,path){
+  const wrap=document.createElement('div');wrap.className='tnode';
+  const row=document.createElement('div');row.className='trow';row.dataset.path=path;
+  const label=key!==''?'<span class="tk">'+esc(key)+'</span><span class="tcol">: </span>':(idx>=0?'<span class="tcol">'+idx+': </span>':'');
+  const isObj=val&&typeof val==='object';
+  if(isObj){
+    const arr=Array.isArray(val),ks=arr?val.map((_,i)=>i):Object.keys(val);
+    const meta=arr?'['+val.length+']':'{'+ks.length+'}';
+    row.innerHTML='<span class="tw">▾</span>'+label+'<span class="tmeta">'+meta+'</span><span class="tprev"> '+(arr?'[…]':'{…}')+'</span>';
+    wrap.appendChild(row);
+    const kids=document.createElement('div');kids.className='tchildren';
+    ks.forEach(k=>kids.appendChild(node(val[k],arr?'':k,arr?k:-1,path+(arr?'['+k+']':'.'+k))));
+    wrap.appendChild(kids);
+    row.querySelector('.tw').addEventListener('click',e=>{e.stopPropagation();wrap.classList.toggle('collapsed')});
+  }else{
+    let cls='n',disp;
+    if(val===null){cls='nul';disp='null'}
+    else if(typeof val==='string'){cls='s';disp='"'+esc(val)+'"'}
+    else if(typeof val==='boolean'){cls='b';disp=val}
+    else{cls='n';disp=val}
+    row.innerHTML='<span style="width:12px;display:inline-block"></span>'+label+'<span class="'+cls+'">'+disp+'</span>';
+    wrap.appendChild(row);
+  }
+  row.addEventListener('click',()=>{copy(path);toast('已复制路径 '+path)});
+  return wrap;
+}
+const esc=s=>(''+s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+/* ---------- 渲染主流程 ---------- */
+function render(){
+  updateGutter();
+  const r=parseInput();
+  if(r.empty){out.textContent='';treeEl.innerHTML='';err.style.display='none';$('stat').textContent='';errLine=-1;updateGutter();return}
+  if(r.err){fail(r.err);return}
+  err.style.display='none';errLine=-1;updateGutter();
+  let target=curObj;
+  const pathQ=$('path').value.trim();
+  if(pathQ){
+    const g=getByPath(curObj,pathQ);
+    if(g.err){$('path').classList.add('bad');target=undefined}
+    else{$('path').classList.remove('bad');target=g.v}
+  }else $('path').classList.remove('bad');
+  stats(curObj);
+  if(target===undefined&&pathQ){out.innerHTML='<span class="e">路径无匹配:'+esc(pathQ)+'</span>';treeEl.innerHTML='';return}
+  if(view==='tree'){buildTree(target);out.style.display='none';treeEl.style.display='block'}
+  else{out.innerHTML=hl(JSON.stringify(target,null,indent));out.style.display='block';treeEl.style.display='none'}
 }
 function fail(e){
+  out.style.display='block';treeEl.style.display='none';
   out.innerHTML='<span class="e">✗ 无效的 JSON</span>';
-  let msg=e.message;
-  const m=msg.match(/position (\d+)/);
+  let msg=e.message;const m=msg.match(/position (\d+)/);
   if(m){
-    const p=+m[1],src=inp.value;
-    const line=src.slice(0,p).split('\n').length;
+    const p=+m[1],src=inp.value.trim();
+    errLine=src.slice(0,p).split('\n').length;
     const col=p-src.lastIndexOf('\n',p-1);
-    msg+=`\n→ 第 ${line} 行,第 ${col} 列附近:\n  …${src.slice(Math.max(0,p-26),p)}【这里】${src.slice(p,p+18)}…`;
+    msg+='\n→ 第 '+errLine+' 行,第 '+col+' 列附近:\n  …'+src.slice(Math.max(0,p-26),p)+'【这里】'+src.slice(p,p+18)+'…';
   }
-  err.textContent=msg;err.style.display='block';
-  document.getElementById('stat').textContent='';
+  err.textContent=msg;err.style.display='block';$('stat').textContent='';
+  updateGutter();
 }
-function run(transform){
-  const v=inp.value.trim();
-  if(!v){out.textContent='';err.style.display='none';return}
-  try{const o=JSON.parse(v);transform(o)}catch(e){fail(e)}
+
+/* ---------- 行号 ---------- */
+function updateGutter(){
+  const lines=inp.value.split('\n').length||1;
+  let h='';for(let i=1;i<=lines;i++)h+=(i===errLine?'<span class="eln">'+i+'</span>':i)+'\n';
+  gutter.innerHTML=h;
+  gutter.scrollTop=inp.scrollTop;
 }
-const sortKeys=o=>{
-  if(Array.isArray(o))return o.map(sortKeys);
-  if(o&&typeof o==='object')return Object.keys(o).sort().reduce((a,k)=>(a[k]=sortKeys(o[k]),a),{});
-  return o;
-};
-document.getElementById('fmt').addEventListener('click',()=>run(o=>show(JSON.stringify(o,null,2),o)));
-document.getElementById('min').addEventListener('click',()=>run(o=>show(JSON.stringify(o),o)));
-document.getElementById('sort').addEventListener('click',()=>run(o=>show(JSON.stringify(sortKeys(o),null,2),o)));
-document.getElementById('clr').addEventListener('click',()=>{inp.value='';out.textContent='';err.style.display='none';document.getElementById('stat').textContent=''});
-inp.addEventListener('input',()=>run(o=>show(JSON.stringify(o,null,2),o)));
+inp.addEventListener('scroll',()=>gutter.scrollTop=inp.scrollTop);
+
+/* ---------- 操作 ---------- */
+const sortKeys=o=>Array.isArray(o)?o.map(sortKeys):(o&&typeof o==='object'?Object.keys(o).sort().reduce((a,k)=>(a[k]=sortKeys(o[k]),a),{}):o);
+function withObj(fn){const r=parseInput();if(r.err){fail(r.err);return}if(r.empty)return;fn(curObj)}
+
+$('fmt').addEventListener('click',()=>withObj(o=>{inp.value=JSON.stringify(o,null,indent);render()}));
+$('min').addEventListener('click',()=>withObj(o=>{inp.value=JSON.stringify(o);render()}));
+$('sort').addEventListener('click',()=>withObj(o=>{inp.value=JSON.stringify(sortKeys(o),null,indent);render()}));
+$('indent').addEventListener('click',()=>{
+  indent=indent===2?4:indent===4?'\t':2;
+  $('indent').textContent='缩进 '+(indent==='\t'?'Tab':indent);
+  render();
+});
+$('esc').addEventListener('click',()=>{
+  if(!inp.value)return;
+  showRaw(JSON.stringify(inp.value));toast('已转义为 JSON 字符串');
+});
+$('unesc').addEventListener('click',()=>{
+  try{const v=JSON.parse(inp.value.trim());if(typeof v!=='string')throw 0;showRaw(v);toast('已还原')}
+  catch(_){toast('请输入带引号的 JSON 字符串')}
+});
+function showRaw(text){
+  view='text';syncView();
+  out.style.display='block';treeEl.style.display='none';
+  out.textContent=text;err.style.display='none';banner.style.display='none';
+}
+$('copy').addEventListener('click',()=>{
+  const text=view==='tree'?(()=>{const r=parseInput();return r.ok?JSON.stringify(curObj,null,indent):''})():out.textContent;
+  if(text){copy(text);toast('已复制结果')}
+});
+$('clr').addEventListener('click',()=>{inp.value='';render();inp.focus()});
+$('path').addEventListener('input',render);
+document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>{view=b.dataset.view;syncView();render()}));
+function syncView(){document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('on',b.dataset.view===view))}
+inp.addEventListener('input',render);
+
+function copy(t){const ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();try{document.execCommand('copy')}catch(_){}ta.remove()}
+let tT;function toast(m){const t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(tT);tT=setTimeout(()=>t.classList.remove('show'),1300)}
+
 inp.value=`{
+  // 试试改成宽松写法,会自动容错解析
   "name": "macOS Web",
   "version": "1.0",
   "online": true,
   "apps": ["书阁", "贪吃蛇", "JSON 工具"],
-  "stats": { "stars": 42, "uptime": "13.5h", "backend": null }
+  "stats": { "stars": 42, "uptime": "13.5h", "backend": null },
 }`;
-run(o=>show(JSON.stringify(o,null,2),o));
+render();
 </script></body></html>
